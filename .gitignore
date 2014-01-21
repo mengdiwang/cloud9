@@ -1,6 +1,7 @@
 *.o
 *.a
 
+DerivedData/
 Release/
 Release+Asserts/
 Debug/
@@ -42,3 +43,14 @@ vgcore.*
 
 cloud9.tar.gz
 !test/Stdc++/libstdc++.a
+
+xcuserdata
+DerivedData/
+DerivedData/cloud9_proj/
+
+# NB: slash on the end, so we only remove the FOLDER, not any files that were badly named "build"
+
+build/
+.DS_Store
+.Trashes
+
