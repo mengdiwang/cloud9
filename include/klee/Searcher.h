@@ -67,6 +67,37 @@ namespace klee {
       update(current, std::set<ExecutionState*>(), tmp);
     }
   };
+    
+    //wmd
+	class CESearcher : public Searcher{
+	public:
+		typedef std::vector<llvm::BasicBlock*> pathType;
+        
+	private:
+		std::vector<ExecutionState*> states;
+		std::vector<pathType> paths;
+		std::vector<std::map<llvm::Instruction*, bool> instMaps;
+		Executor &executor;
+		int miss_ctr;
+        
+		bool allDone(void);
+		bool done(int index);
+		int left(int index);
+		void KillAllStates(void);
+        
+	public:
+		CESearcher(Executor &_executor, std::string cefile);
+		ExecutionState &selectState();
+		void update(ExecutionState *current,
+								const std::set<ExecutionState*> &addedStates,
+								const std::set<ExecutionState*> &removedStates);
+		bool empty() {return states.empty();}
+		void printName(std::ostream &os)
+		{
+			os << "CESearcher\n";
+		}
+	};
+	//~
 
   class DFSSearcher : public Searcher {
     std::vector<ExecutionState*> states;
