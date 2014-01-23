@@ -83,6 +83,10 @@ class Executor : public Interpreter, public ::cloud9::worker::SymbolicEngine {
   friend class SpecialFunctionHandler;
   friend class StatsTracker;
   friend class ObjectState;
+  
+  //wmd
+  friend class CESearcher;
+  //~
 
 public:
   class Timer {
