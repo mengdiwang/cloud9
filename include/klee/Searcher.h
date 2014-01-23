@@ -76,7 +76,7 @@ namespace klee {
 	private:
 		std::vector<ExecutionState*> states;
 		std::vector<pathType> paths;
-		std::vector<std::map<llvm::Instruction*, bool> instMaps;
+		std::vector<std::map<llvm::Instruction*, bool> > instMaps;
 		Executor &executor;
 		int miss_ctr;
         
