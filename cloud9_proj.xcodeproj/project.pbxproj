@@ -654,7 +654,7 @@
 		E83C9EC4188E6F0E0009BB0F /* Threading.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Threading.cpp; sourceTree = "<group>"; };
 		E83C9EC5188E6F0E0009BB0F /* TimingSolver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TimingSolver.cpp; sourceTree = "<group>"; };
 		E83C9EC6188E6F0E0009BB0F /* TimingSolver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TimingSolver.h; sourceTree = "<group>"; };
-		E83C9EC7188E6F0E0009BB0F /* UserSearcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UserSearcher.cpp; sourceTree = "<group>"; };
+		E83C9EC7188E6F0E0009BB0F /* UserSearcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UserSearcher.cpp; sourceTree = "<group>"; usesTabs = 0; };
 		E83C9EC8188E6F0E0009BB0F /* UserSearcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UserSearcher.h; sourceTree = "<group>"; };
 		E83C9ECA188E6F0E0009BB0F /* ConstraintSolving.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ConstraintSolving.proto; sourceTree = "<group>"; };
 		E83C9ECB188E6F0E0009BB0F /* CoverageLogs.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CoverageLogs.proto; sourceTree = "<group>"; };

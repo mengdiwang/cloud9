@@ -15,6 +15,10 @@
 #include <map>
 #include <queue>
 
+#include "llvm/Function.h"
+#include "llvm/BasicBlock.h"
+#include "Executor.h"
+
 // FIXME: Move out of header, use llvm streams.
 #include <ostream>
 
