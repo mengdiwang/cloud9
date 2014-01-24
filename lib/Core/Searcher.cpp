@@ -77,7 +77,7 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile) : executor(_
         {
             llvm::TCeItem ce = *it;
             BasicBlock *bb = ce.criStmtStr->getParent();
-            std::cerr << "[" << bb->getNameStr() << " {" << bb->getParent() << "} [" << bb << "] - ";
+            std::cerr << "[" /*<< bb->getName()*/ << " {" << bb->getParent() << "} [" << bb << "] - ";
         }
         std::cerr << "\n";
     

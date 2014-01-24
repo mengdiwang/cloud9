@@ -19,6 +19,7 @@
 #include "llvm/BasicBlock.h"
 #include "Executor.h"
 
+#include "llvm/Analysis/CEPass.h"
 // FIXME: Move out of header, use llvm streams.
 #include <ostream>
 
