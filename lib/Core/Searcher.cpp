@@ -54,28 +54,29 @@ Searcher::~Searcher() {
 }
 
 ///
-//----------CESearcher
+//----------CESearcher--------------//
 CESearcher::CESearcher(Executor &_executer, std::string defectFile) : executor(_executer),miss_ctr(0)
 {
     //build the path list
     Module *M = executor.kmodule->module;
     PassManager Passes;
     
-    Pass *P = createCEPass(&paths, defectFile);
+    Pass *P = createCEPass(&cepaths, defectFile);
     Passes.add(P);
     Passes.run(*M);
     
     std::cerr << "CESearcher:: critical path are follow:\n";
     
-    for(std::vector<pathType>::iterator pit=paths.begin(); pit!=paths.end(); ++pit)
+    for(std::vector<TceList>::iterator pit=cepaths.begin(); pit!=cepaths.end(); ++pit)
     {
-        pathType path = *pit;
+        TceList path = *pit;
         if(path.empty())
             continue;
         
-        for(pathType::iterator it=path.begin(); it!=path.end(); ++it)
+        for(TceList::iterator it=path.begin(); it!=path.end(); ++it)
         {
-            BasicBlock *bb = *it;
+            llvm::TCeItem ce = *it;
+            BasicBlock *bb = ce.criStmtStr->getParent();
             std::cerr << "[" << bb->getNameStr() << " {" << bb->getParent() << "} [" << bb << "] - ";
         }
         std::cerr << "\n";
@@ -84,7 +85,8 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile) : executor(_
         //build instmap
         std::map<llvm::Instruction*, bool> instMap;
     
-        BasicBlock *BB = path.back();
+        llvm::TCeItem ceitem = path.back();
+        BasicBlock *BB = ceitem.criStmtStr->getParent();
         for(BasicBlock::iterator bbit=BB->begin(); bbit!=BB->end(); ++bbit)
         {
             Instruction *I = bbit;

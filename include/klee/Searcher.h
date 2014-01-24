@@ -75,11 +75,11 @@ namespace klee {
     //wmd
 	class CESearcher : public Searcher{
 	public:
-		typedef std::vector<llvm::BasicBlock*> pathType;
-        
+//		typedef std::vector<llvm::BasicBlock*> pathType;
+	  typedef std::vector<llvm::TCeItem> TceList;
 	private:
 		std::vector<ExecutionState*> states;
-		std::vector<pathType> paths;
+		std::vector<TceList> cepaths;
 		std::vector<std::map<llvm::Instruction*, bool> > instMaps;
 		Executor &executor;
 		int miss_ctr;

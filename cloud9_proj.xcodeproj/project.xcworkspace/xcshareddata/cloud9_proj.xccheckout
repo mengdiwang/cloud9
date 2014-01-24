@@ -5,7 +5,7 @@
 	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
 	<false/>
 	<key>IDESourceControlProjectIdentifier</key>
-	<string>A56E35D9-4275-4880-9984-B2D40A20C181</string>
+	<string>7FB0C244-B30D-4726-9923-BDD99015E903</string>
 	<key>IDESourceControlProjectName</key>
 	<string>cloud9_proj</string>
 	<key>IDESourceControlProjectOriginsDictionary</key>
@@ -14,11 +14,11 @@
 		<string>https://github.com/mengdiwang/cloud9.git</string>
 	</dict>
 	<key>IDESourceControlProjectPath</key>
-	<string>cloud9_proj/cloud9_proj.xcodeproj/project.xcworkspace</string>
+	<string>cloud9_proj.xcodeproj/project.xcworkspace</string>
 	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
 	<dict>
 		<key>B0A83363-583C-4003-9E5D-3CF28F184543</key>
-		<string>../../..</string>
+		<string>../..</string>
 	</dict>
 	<key>IDESourceControlProjectURL</key>
 	<string>https://github.com/mengdiwang/cloud9.git</string>
