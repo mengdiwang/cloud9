@@ -1,3 +1,4 @@
+/configure.out
 *.o
 *.a
 *.orig
@@ -8,6 +9,7 @@ Release+Asserts+Checks/
 Debug/
 Debug+Asserts/
 Debug+Asserts+Checks/
+
 .project
 .cproject
 configure.out
@@ -58,4 +60,3 @@ DerivedData/cloud9_proj/
 build/
 .DS_Store
 .Trashes
-
