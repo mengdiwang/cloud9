@@ -31,6 +31,9 @@
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/CommandLine.h"
 
+#include "llvm/PassManager.h"
+#include "llvm/Analysis/CEPass.h"
+
 #include <cassert>
 #include <fstream>
 #include <climits>
@@ -51,6 +54,67 @@ Searcher::~Searcher() {
 }
 
 ///
+//----------CESearcher--------------//
+CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
+{
+    //build the path list
+    Module *M = executor.kmodule->module;
+    PassManager Passes;
+    
+    Pass *P = createCEPass(&cepaths, defectFile);
+    Passes.add(P);
+    Passes.run(*M);
+    
+    std::cerr << "CESearcher:: critical path are follow:\n";
+    
+    for(std::vector<TceList>::iterator pit=cepaths.begin(); pit!=cepaths.end(); ++pit)
+    {
+        TceList path = *pit;
+        if(path.empty())
+            continue;
+        
+        for(TceList::iterator it=path.begin(); it!=path.end(); ++it)
+        {
+            llvm::TCeItem ce = *it;
+            BasicBlock *bb = ce.criStmtStr->getParent();
+
+            //std::cerr << "["  << " {" << bb->getParent() << "} [" << bb << "] - ";
+
+            std::cerr << "[" /*<< bb->getName()*/ << " {" << bb->getParent() << "} [" << bb << "] - ";
+
+        }
+        std::cerr << "\n";
+    
+    
+        //build instmap
+        std::map<llvm::Instruction*, bool> instMap;
+    
+        llvm::TCeItem ceitem = path.back();
+        BasicBlock *BB = ceitem.criStmtStr->getParent();
+        for(BasicBlock::iterator bbit=BB->begin(); bbit!=BB->end(); ++bbit)
+        {
+            Instruction *I = bbit;
+            if(I->getOpcode() != Instruction::Br)
+                instMap[I] = false;
+        }
+        std::cerr << instMap.size() << "instruction in leaf BB\n";
+        instMaps.push_back(instMap);
+    }
+}
+
+ExecutionState &CESearcher::selectState()
+{
+
+}
+
+void CESearcher::update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,const std::set<ExecutionState*> &removedStates)
+{
+
+}
+
+
+//~
+
 
 ExecutionState &DFSSearcher::selectState() {
   return *states.back();
