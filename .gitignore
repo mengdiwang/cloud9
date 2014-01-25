@@ -1,11 +1,16 @@
 *.o
 *.a
-
+*.orig
 DerivedData/
 Release/
 Release+Asserts/
+Release+Asserts+Checks/
 Debug/
 Debug+Asserts/
+Debug+Asserts+Checks/
+.project
+.cproject
+configure.out
 
 Makefile.config
 config.log
