@@ -1,11 +1,14 @@
+/configure.out
 *.o
 *.a
-
+*.orig
 DerivedData/
 Release/
 Release+Asserts/
+Release+Asserts+Checks/
 Debug/
 Debug+Asserts/
+Debug+Asserts+Checks/
 
 Makefile.config
 config.log
@@ -53,4 +56,3 @@ DerivedData/cloud9_proj/
 build/
 .DS_Store
 .Trashes
-
