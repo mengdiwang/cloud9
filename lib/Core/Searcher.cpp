@@ -104,7 +104,7 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_ex
 
 ExecutionState &CESearcher::selectState()
 {
-
+    return *states.back();
 }
 
 void CESearcher::update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,const std::set<ExecutionState*> &removedStates)
