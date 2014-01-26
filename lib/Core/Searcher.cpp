@@ -55,7 +55,7 @@ Searcher::~Searcher() {
 
 ///
 //----------CESearcher--------------//
-CESearcher::CESearcher(Executor &_executer, std::string defectFile) : executor(_executer),miss_ctr(0)
+CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
 {
     //build the path list
     Module *M = executor.kmodule->module;
@@ -77,7 +77,11 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile) : executor(_
         {
             llvm::TCeItem ce = *it;
             BasicBlock *bb = ce.criStmtStr->getParent();
+
+            //std::cerr << "["  << " {" << bb->getParent() << "} [" << bb << "] - ";
+
             std::cerr << "[" /*<< bb->getName()*/ << " {" << bb->getParent() << "} [" << bb << "] - ";
+
         }
         std::cerr << "\n";
     
@@ -97,6 +101,18 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile) : executor(_
         instMaps.push_back(instMap);
     }
 }
+
+ExecutionState &CESearcher::selectState()
+{
+
+}
+
+void CESearcher::update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,const std::set<ExecutionState*> &removedStates)
+{
+
+}
+
+
 //~
 
 

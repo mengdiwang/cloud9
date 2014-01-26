@@ -20,6 +20,7 @@
 #include "Executor.h"
 
 #include "llvm/Analysis/CEPass.h"
+
 // FIXME: Move out of header, use llvm streams.
 #include <ostream>
 
@@ -74,34 +75,33 @@ namespace klee {
   };
     
     //wmd
-	class CESearcher : public Searcher{
-	public:
+  class CESearcher : public Searcher{
+  public:
 //		typedef std::vector<llvm::BasicBlock*> pathType;
-	  typedef std::vector<llvm::TCeItem> TceList;
+    typedef std::vector<llvm::TCeItem> TceList;
 	private:
-		std::vector<ExecutionState*> states;
-		std::vector<TceList> cepaths;
-		std::vector<std::map<llvm::Instruction*, bool> > instMaps;
-		Executor &executor;
-		int miss_ctr;
+    std::vector<ExecutionState*> states;
+    std::vector<TceList> cepaths;
+    std::vector<std::map<llvm::Instruction*, bool> > instMaps;
+    Executor &executor;
+    int miss_ctr;
         
-		bool allDone(void);
-		bool done(int index);
-		int left(int index);
-		void KillAllStates(void);
+	//bool allDone(void);
+	//bool done(int index);
+	//int left(int index);
+	//void KillAllStates(void);
         
-	public:
-		CESearcher(Executor &_executor, std::string cefile);
-		ExecutionState &selectState();
-		void update(ExecutionState *current,
-								const std::set<ExecutionState*> &addedStates,
-								const std::set<ExecutionState*> &removedStates);
-		bool empty() {return states.empty();}
-		void printName(std::ostream &os)
-		{
-			os << "CESearcher\n";
-		}
-	};
+  public:
+    CESearcher(Executor &_executor, std::string cefile);
+    ExecutionState &selectState();
+    void update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
+        const std::set<ExecutionState*> &removedStates);
+    bool empty() {return states.empty();}
+    void printName(std::ostream &os)
+    {
+      os << "CESearcher\n";
+    }
+  };
 	//~
 
   class DFSSearcher : public Searcher {
