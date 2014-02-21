@@ -105,6 +105,7 @@ bool klee::userSearcherRequiresBranchSequences() {
 
 Searcher *klee::constructUserSearcher(Executor &executor, Searcher *original) {
   Searcher *searcher = original;
+  std::cerr << "[wmd debug]UserSearcher.cpp\n";
 
   if (!searcher) {
     if (UseRandomPathSearch) {
@@ -173,7 +174,10 @@ Searcher *klee::constructUserSearcher(Executor &executor, Searcher *original) {
   std::ostream &os = executor.getHandler().getInfoStream();
 
   os << "BEGIN searcher description\n";
+  std::cerr << "BEGIN searcher description\n";
   searcher->printName(os);
+  searcher->printName(std::cerr);
+  std::cerr << "END searcher description\n";
   os << "END searcher description\n";
 
   return searcher;
