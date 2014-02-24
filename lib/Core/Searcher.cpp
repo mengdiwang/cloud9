@@ -107,9 +107,29 @@ ExecutionState &CESearcher::selectState()
     return *states.back();
 }
 
-void CESearcher::update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,const std::set<ExecutionState*> &removedStates)
+void CESearcher::update(ExecutionState *current,
+						const std::set<ExecutionState*> &addedStates,
+						const std::set<ExecutionState*> &removedStates)
 {
+	  states.insert(states.end(),
+	                addedStates.begin(),
+	                addedStates.end());
+	  for (std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
+	         ie = removedStates.end(); it != ie; ++it) {
+	    ExecutionState *es = *it;
+	    bool ok = false;
 
+	    for (std::vector<ExecutionState*>::iterator it = states.begin(),
+	           ie = states.end(); it != ie; ++it) {
+	      if (es==*it) {
+	        states.erase(it);
+	        ok = true;
+	        break;
+	      }
+	    }
+
+	    assert(ok && "invalid state removed");
+	  }
 }
 
 
