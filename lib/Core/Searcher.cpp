@@ -85,7 +85,7 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_ex
         }
         std::cerr << "\n";
     
-    
+   
         //build instmap
         std::map<llvm::Instruction*, bool> instMap;
     
@@ -99,6 +99,7 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_ex
         }
         std::cerr << instMap.size() << "instruction in leaf BB\n";
         instMaps.push_back(instMap);
+
     }
 }
 
