@@ -671,12 +671,17 @@ void Executor::stepInState(ExecutionState *state) {
 }
 
 void Executor::run(ExecutionState &initialState) {
+
+  errs() << "init searcher\n";
   searcher = initSearcher(NULL);
 
+  errs() << "update\n";
   searcher->update(0, states, std::set<ExecutionState*>());
 
+  errs() << "while loop\n";
   while (!states.empty() && !haltExecution) {
-    ExecutionState &state = searcher->selectState();
+	  errs() << "select state\n";
+	  ExecutionState &state = searcher->selectState();
 
     stepInState(&state);
   }
