@@ -62,7 +62,7 @@ static unsigned callsWithoutCheck = 0;
 
 // XXX hack
 extern "C" unsigned dumpStates, dumpPTree;
-unsigned dumpStates = 0, dumpPTree = 0;
+unsigned dumpStates =1, dumpPTree = 0;
 
 static void onAlarm(int) {
   ++timerTicks;
