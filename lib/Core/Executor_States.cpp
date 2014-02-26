@@ -615,6 +615,10 @@ void Executor::stepInState(ExecutionState *state) {
       << " through state " << state << " Src: " << state->pc()->info->file
       << " Line: " << state->pc()->info->line;
 
+  errs() << "Executing instruction: " << state->pc()->info->assemblyLine
+       << " through state " << state << " Src: " << state->pc()->info->file
+       << " Line: " << state->pc()->info->line;
+
   resetTimers();
 
 	KInstruction *ki = state->pc();
