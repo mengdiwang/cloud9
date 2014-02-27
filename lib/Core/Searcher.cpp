@@ -32,12 +32,24 @@
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/CommandLine.h"
 
+#include "llvm/Support/InstIterator.h"
+#include "llvm/Support/CallSite.h"
 #include "llvm/PassManager.h"
-#include "llvm/Analysis/CEPass.h"
+//#include "llvm/Analysis/CEPass.h"
 
 #include <cassert>
 #include <fstream>
 #include <climits>
+
+#include <boost/config.hpp>
+#include <boost/utility.hpp>
+#include <boost/graph/adjacency_list.hpp>
+//#include <boost/graph/graphviz.hpp> //graphviz not compatitable with dijkstra
+#include <boost/graph/graph_traits.hpp>
+#include <boost/graph/depth_first_search.hpp>
+#include <boost/graph/dijkstra_shortest_paths.hpp>
+
+using namespace boost;
 
 using namespace klee;
 using namespace llvm;
@@ -62,9 +74,18 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
     llvm::Module *M = executor.kmodule->module;
     klee::KModule *km = executor.kmodule;
     
+    defectList dl;
     getDefectList(defectFile, &dl);
+    if(dl.size() <= 0)
+    {
+        std::cerr << "No entry in defectFile.t\n";
+        return;
+    }
+    
     TCList ceList;
-    std::vector<Vertex> path;
+    std::vector<boost::Vertex> path;
+    
+    BuildGraph();
     
     std::vector<unsigned>lines;
     std::vector<BasicBlock *> bbpath;
@@ -84,16 +105,24 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
                 if(bb == NULL)
                 {
                 	std::cerr << "target:" << file << "' (" << *lit << "')Not find\n";
-
+                    continue;
                 }
             }
+            
+            if(bb==NULL)
+                continue;
 
+            std::cerr << "inter-Blocks Dijkstra\n";
+            //interprocedural
+            boost::Vertex rootv = bbMap[rootBB];
+            boost::Vertex targetv = bbMap[tBB];
             path.clear();
             bbpath.clear();
 
             findSinglePath(&path, rootv, targetv, bbG);
+            
             BasicBlock *tmpb = NULL;
-            for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
+            for(std::vector<boost::Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
             {
             	tmpb = getBB(*it);
             	if(tmpb != NULL) bbpath.push_back(tmpb);
@@ -105,6 +134,42 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
         }
     }
 }
+
+BasicBlock *CEKSearcher::getBB(boost::Vertex v)
+{
+    for(std::map<BasicBlock *, boost::Vertex>::iterator it=bbMap.begin(); it!=bbMap.end(); ++it)
+    {
+        if(v == it->second)
+            return it->first;
+    }
+    return NULL;
+}
+
+//find the path on the built graph
+void CEKSearcher::findSinglePath(std::vector<Vertex> *path, boost::Vertex root, boost::Vertex target, Graph &graph)
+{
+    std::vector<boost::Vertex> p(num_vertices(graph));
+    std::vector<int> d(num_vertices(graph));
+    property_map<Graph, vertex_index_t>::type indexmap = get(vertex_index, graph);
+    property_map<Graph, edge_weight_t>::type bbWeightmap = get(edge_weight, graph);
+    
+    dijkstra_shortest_paths(graph, root, &p[0], &d[0], bbWeightmap, indexmap,
+                            std::less<int>(), closed_plus<int>(),
+                            (std::numeric_limits<int>::max)(), 0,
+                            default_dijkstra_visitor());
+    
+    //  std::cout << "shortest path:" << std::endl;
+    while(p[target] != target)
+    {
+        path->insert(path->begin(), target);
+        target = p[target];
+    }
+    // Put the root in the list aswell since the loop above misses that one
+    if(!path->empty())
+        path->insert(path->begin(), root);
+    
+}
+
 
 BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
 {
@@ -130,10 +195,27 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
     return bb;
 }
 
-void CEKSearcher::BuildGraph(CallGraph *CG)
+void CEKSearcher::addBBEdges(BasicBlock *BB)
+{
+    graph_traits<Graph>::edge_descriptor e;
+    bool inserted;
+    property_map<Graph, edge_weight_t>::type bbWeightmap = get(edge_weight, bbG);
+    
+    for(succ_iterator si = succ_begin(BB); si!=succ_end(BB); ++si)
+    {
+        boost::tie(e, inserted) = add_edge(bbMap[BB], bbMap[*si], bbG);
+        if(inserted)
+            addBBEdges(*si);
+        bbWeightmap[e] = 1;
+    }
+}
+
+
+void CEKSearcher::BuildGraph()
 {
 	llvm::Module *M = executor.kmodule->module;
-	for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+	/*
+    for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
 	{
 		Function *F = fit;
 		CallGraphNode *cgn = CG->getOrInsertFunction(F);
@@ -168,6 +250,58 @@ void CEKSearcher::BuildGraph(CallGraph *CG)
 
 		}
 	}
+     */
+    
+    for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+    {
+        //Function *F = fit;
+        //funcMap[F] = add_vertex(funcG);
+        for(Function::iterator bbit = F->begin(), bb_ie=F->end(); bbit != bb_ie; ++bbit)
+        {
+            BasicBlock *BB = bbit;
+            bbMap[BB] = add_vertex(bbG);
+        }
+    }
+    
+    boost::property_map<Graph, boost::edge_weight_t>::type bbWeightmap = boost::get(boost::edge_weight, bbG);
+    
+    llvm::Module *M = executor.kmodule->module;
+	for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+    {
+        boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
+        
+        for(inst_iterator it = inst_begin(fit), ie = inst_end(fit); it!=ie; ++it)
+        {
+            llvm::Instruction *i = &*it;
+            if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
+            {
+                BasicBlock *BB = (&*fit)->getEntryBlock();
+                addBBEdges(BB);
+                
+                CallSite cs(i);
+                Function *f = cs.getCalledFunction();
+                
+                if(f == NULL)
+                    continue;
+                if(f->empty())
+                    continue;
+            
+                BasicBlock *callerBB = i->getParent();
+                Function::iterator cBBit = f->getEntryBlock();
+                BasicBlock *calleeBB = &*cBBit;
+                if(calleeBB == NULL)
+                    continue;
+                
+                boost::tie(e, inserted) = boost::add_edge(bbMap[callerBB], bbMap[calleeBB], bbG);
+                bbWeightmap[e] = 1;
+                
+                CallBlockMap[std::make_pair(F,tF)].push_back(callerBB);
+                if(!isCallsite.count(callerBB))
+                    isCallsite.insert(callerBB);
+                
+            }
+        }
+    }
 }
 
 void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList)
@@ -327,25 +461,12 @@ void CEKSearcher::getDefectList(std::string docname, defectList *res)
     fin.close();
 }
 
+/*
 //----------CESearcher--------------//
 CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
 {
     //build the path list
 
-/*	Module *M = executor.kmodule->module;
-    PassManager Passes;
-    
-    Pass *P = createCEPass(&cepaths, defectFile);
-    Passes.add(P);
-    Passes.run(*M);
-
-
-
-    std::cerr << "CESearcher:: Critical path are follow:\n";
-    
-    int count = 0;
-
-  */
 	int count;
 	std::vector<TceList> &cepaths = executor.kmodule->cepaths;
     std::cerr << "CESearcher:: critical path are follow:\n";
@@ -368,7 +489,7 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_ex
 
             //std::cerr << "["  << " {" << bb->getParent() << "} [" << bb << "] - ";
 
-            std::cerr << "[" /*<< bb->getName()*/ << " {" << bb->getParent() << "} [" << bb << "] - ";
+            std::cerr << "["  << " {" << bb->getParent() << "} [" << bb << "] - ";
 
         }
         std::cerr << "\n";
@@ -421,9 +542,8 @@ void CESearcher::update(ExecutionState *current,
 	}
 }
 
-
 //~
-
+*/
 
 ExecutionState &DFSSearcher::selectState() {
   return *states.back();
