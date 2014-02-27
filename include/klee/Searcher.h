@@ -19,7 +19,14 @@
 #include "llvm/BasicBlock.h"
 #include "Executor.h"
 
-#include "llvm/Analysis/CEPass.h"
+//#include "llvm/Analysis/CEPass.h"
+
+#include <boost/config.hpp>
+#include <boost/utility.hpp>
+#include <boost/graph/adjacency_list.hpp>
+//#include <boost/graph/graphviz.hpp>
+#include <boost/graph/graph_traits.hpp>
+#include <boost/graph/depth_first_search.hpp>
 
 // FIXME: Move out of header, use llvm streams.
 #include <ostream>
@@ -29,6 +36,12 @@ namespace llvm {
   class Function;
   class Instruction;
 }
+
+namespace boost{
+    class Vertex;
+    
+}
+
 
 namespace klee {
   template<class T> class DiscretePDF;
@@ -76,6 +89,7 @@ namespace klee {
     
   
     //wmd
+  /*
   class CESearcher : public Searcher{
   public:
 //		typedef std::vector<llvm::BasicBlock*> pathType;
@@ -103,7 +117,7 @@ namespace klee {
       os << "CESearcher\n";
     }
   };
-  
+  */
 
   class CEKSearcher : public Searcher{
   public:
@@ -119,7 +133,14 @@ namespace klee {
 
   private:
     typedef std::map<std::string, std::vector<unsigned> > defectList;
+      typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property,
+    boost::property<boost::edge_weight_t, int> > Graph;
+    typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
+    typedef boost::graph_traits<Graph>::edge_descriptor Edge;
+    typedef boost::color_traits<boost::default_color_type> Color;
+    typedef std::vector<boost::default_color_type> ColorVec;
 
+      
     std::vector<ExecutionState*> states;
     std::vector<TCList> cepaths;
     Executor &executor;
@@ -129,14 +150,18 @@ namespace klee {
     std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
     std::set<BasicBlock *> isCallsite;
 
-
-    defectList dl;
-
+    Graph bbG;
+    std::map<BasicBlock*, Vertex> bbMap;
+      
     BasicBlock *FindTarget(std::string file, unsigned line);
-    void BuildGraph(CallGraph *CG);
+    void BuildGraph();
     void getDefectList(std::string docname, defectList *res);
     void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList);
     void findCEofSingleBB(BasicBlock *targetB, TCList &ceList);
+    
+    void addBBEdges(llvm::BasicBlock *BB);
+    BasicBlock *getBB(boost::Vertex v)
+    void findSinglePath(std::vector<Vertex> *path, boost::Vertex root, boost::Vertex target, Graph &graph)
 
     
   public:
