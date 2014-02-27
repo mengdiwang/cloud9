@@ -109,6 +109,10 @@ namespace klee {
 
     Cell *constantTable;
 
+    //wmd
+    typedef std::vector<llvm::TCeItem> TceList;
+    std::vector<TceList> cepaths;
+
   private:
     typedef std::pair<std::string, int> program_point_t;
     typedef std::map<std::string, std::set<program_point_t> > vpoints_t;

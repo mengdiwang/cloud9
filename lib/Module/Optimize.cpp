@@ -146,7 +146,7 @@ static void AddStandardCompilePasses(PassManager &PM) {
 /// optimizations, any loaded plugin-optimization modules, and then the
 /// inter-procedural optimizations if applicable.
 void Optimize(Module* M) {
-
+  std::cerr << "[wmd debug] optimized\n";
   // Instantiate the pass manager to organize the passes.
   PassManager Passes;
 

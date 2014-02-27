@@ -42,6 +42,8 @@
 
 #include <glog/logging.h>
 
+#include "llvm/Analysis/CEPass.h"
+
 #include <sstream>
 #include <fstream>
 #include <string>
@@ -389,6 +391,12 @@ void KModule::prepare(const Interpreter::ModuleOptions &opts,
   // optimize is seeing what is as close as possible to the final
   // module.
   PassManager pm;
+
+  //wmd
+  std::cerr<<"KModule prepare run cpath\n";
+  Pass *CEP = createCEPass(&cepaths, "defectList.txt");
+  pm.add(CEP);
+
   pm.add(createLowerAtomicPass());
   pm.add(new RaiseAsmPass());
   if (opts.CheckDivZero) pm.add(new DivCheckPass());
