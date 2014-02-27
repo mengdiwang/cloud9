@@ -25,7 +25,7 @@ namespace llvm {
   class Instruction;
   class Module;
   class TargetData;
-  class TCeItem;
+  struct TCeItem;
 }
 
 namespace klee {

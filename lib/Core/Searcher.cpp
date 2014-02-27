@@ -67,14 +67,14 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_ex
     Passes.run(*M);
 
 
-
+*/
     std::cerr << "CESearcher:: Critical path are follow:\n";
     
     int count = 0;
 
-  */
+  
 	std::vector<TceList> &cepaths = executor.kmodule->cepaths;
-    std::cerr << "CESearcher:: critical path are follow:\n";
+
     
     if(cepaths.size() == 0)
 		std::cerr << "CESearcher:: Warning cepaths has no element\n";
