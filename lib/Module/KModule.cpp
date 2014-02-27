@@ -393,10 +393,7 @@ void KModule::prepare(const Interpreter::ModuleOptions &opts,
   PassManager pm;
 
   //wmd
-  std::cerr<<"KModule prepare run cpath\n";
-  Pass *CEP = createCEPass(&cepaths, "defectList.txt");
-  pm.add(CEP);
-
+ 
   pm.add(createLowerAtomicPass());
   pm.add(new RaiseAsmPass());
   if (opts.CheckDivZero) pm.add(new DivCheckPass());
