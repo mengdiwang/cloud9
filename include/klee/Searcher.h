@@ -74,6 +74,7 @@ namespace klee {
     }
   };
     
+  
     //wmd
   class CESearcher : public Searcher{
   public:
@@ -90,7 +91,7 @@ namespace klee {
 	//bool done(int index);
 	//int left(int index);
 	//void KillAllStates(void);
-        
+    
   public:
     CESearcher(Executor &_executor, std::string cefile);
     ExecutionState &selectState();
@@ -100,6 +101,34 @@ namespace klee {
     void printName(std::ostream &os)
     {
       os << "CESearcher\n";
+    }
+  };
+  
+  class CEKSearcher : public Searcher{
+  public:
+    typedef std::vector<llvm::TCeItem> TceList;
+  private:
+	private:
+    std::vector<ExecutionState*> states;
+    std::vector<TceList> cepaths;
+    std::vector<std::map<llvm::Instruction*, bool> > instMaps;
+    Executor &executor;
+    int miss_ctr;
+    
+    //bool allDone(void);
+    //bool done(int index);
+    //int left(int index);
+    //void KillAllStates(void);
+    
+  public:
+    CEKSearcher(Executor &_executor, std::string cefile);
+    ExecutionState &selectState();
+    void update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
+                const std::set<ExecutionState*> &removedStates);
+    bool empty() {return states.empty();}
+    void printName(std::ostream &os)
+    {
+      os << "CEKSearcher\n";
     }
   };
 	//~
