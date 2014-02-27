@@ -107,18 +107,18 @@ namespace klee {
   class CEKSearcher : public Searcher{
   public:
     typedef std::vector<llvm::TCeItem> TceList;
-  private:
+
 	private:
+    typedef std::map<std::string, std::vector<unsigned> > defectList;
+
     std::vector<ExecutionState*> states;
     std::vector<TceList> cepaths;
     std::vector<std::map<llvm::Instruction*, bool> > instMaps;
     Executor &executor;
     int miss_ctr;
     
-    //bool allDone(void);
-    //bool done(int index);
-    //int left(int index);
-    //void KillAllStates(void);
+    defectList dl;
+    void getDefectList(std::string docname, defectList *res);
     
   public:
     CEKSearcher(Executor &_executor, std::string cefile);
