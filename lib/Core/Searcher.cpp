@@ -73,6 +73,7 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_ex
     int count = 0;
 
   */
+	int count
 	std::vector<TceList> &cepaths = executor.kmodule->cepaths;
     std::cerr << "CESearcher:: critical path are follow:\n";
     
