@@ -54,6 +54,73 @@ Searcher::~Searcher() {
 }
 
 ///
+//----------CEKSearcher-------------//
+
+CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
+{
+    llvm::Module *M = executor.kmodule->module;
+    klee::KModule *km = executor.kmodule;
+    
+    getDefectList(defectFile, &dl);
+    
+    std::vector<unsigned>lines;
+    for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
+    {
+        std::string file = dit->first;
+        lines = dit->second;
+        for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
+        {
+            std::cerr << "Looking for '" << file << "' (" << *lit << "')\n";
+            for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
+            {
+                for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
+                {
+                }
+            }
+            
+        }
+    }
+}
+
+void CEKSearcher::getDefectList(std::string docname, defectList *res)
+{
+    std::cerr << "Open defect file " << docname << "\n";
+    std::ifstream fin(docname.c_str());
+    std::string fname="";
+    std::vector<unsigned> lineList;
+    while(!fin.eof())
+    {
+        std::string filename="";
+        unsigned lineno;
+        
+        fin >> filename >> lineno;
+        if(filename.length() < 1)
+            break;
+        errs() << "readin:" << filename << "\n";
+        if(fname == "")
+        {
+            fname = filename;
+        }
+        
+        if(fname != filename)
+        {
+            res->insert(std::make_pair(filename, lineList));
+            lineList.clear();
+            fname = filename;
+        }
+        
+        lineList.push_back(lineno);
+    }
+    //tail add
+    if(lineList.size()>0 && fname != "")
+    {
+        res->insert(std::make_pair(fname, lineList));
+        lineList.clear();
+    }
+    
+    fin.close();
+}
+
 //----------CESearcher--------------//
 CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
 {
