@@ -64,11 +64,17 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_ex
     Pass *P = createCEPass(&cepaths, defectFile);
     Passes.add(P);
     Passes.run(*M);
+
+    if(cepaths.size() == 0)
+		std::cerr << "CESearcher:: Warning cepaths has no element\n";
+
+    std::cerr << "CESearcher:: Critical path are follow:\n";
     
-    std::cerr << "CESearcher:: critical path are follow:\n";
-    
+    int count = 0;
     for(std::vector<TceList>::iterator pit=cepaths.begin(); pit!=cepaths.end(); ++pit)
     {
+		std::cerr << count << "\n";
+		count ++;
         TceList path = *pit;
         if(path.empty())
             continue;
@@ -112,25 +118,25 @@ void CESearcher::update(ExecutionState *current,
 						const std::set<ExecutionState*> &addedStates,
 						const std::set<ExecutionState*> &removedStates)
 {
-	  states.insert(states.end(),
-	                addedStates.begin(),
-	                addedStates.end());
-	  for (std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
-	         ie = removedStates.end(); it != ie; ++it) {
-	    ExecutionState *es = *it;
-	    bool ok = false;
+	states.insert(states.end(),
+				addedStates.begin(),
+				addedStates.end());
+	for (std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
+		ie = removedStates.end(); it != ie; ++it) {
+		ExecutionState *es = *it;
+		bool ok = false;
 
-	    for (std::vector<ExecutionState*>::iterator it = states.begin(),
+		for (std::vector<ExecutionState*>::iterator it = states.begin(),
 	           ie = states.end(); it != ie; ++it) {
-	      if (es==*it) {
-	        states.erase(it);
-	        ok = true;
-	        break;
-	      }
+			if (es==*it) {
+				states.erase(it);
+				ok = true;
+				break;
+			}
 	    }
 
-	    assert(ok && "invalid state removed");
-	  }
+		assert(ok && "invalid state removed");
+	}
 }
 
 
