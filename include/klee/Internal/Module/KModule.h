@@ -13,6 +13,8 @@
 #include "klee/Interpreter.h"
 #include "llvm/ADT/StringRef.h"
 
+#include "llvm/Analysis/CEPass.h"
+
 #include <map>
 #include <set>
 #include <vector>
