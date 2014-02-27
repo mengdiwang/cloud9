@@ -58,13 +58,15 @@ Searcher::~Searcher() {
 CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
 {
     //build the path list
-    Module *M = executor.kmodule->module;
+
+/*	Module *M = executor.kmodule->module;
     PassManager Passes;
     
     Pass *P = createCEPass(&cepaths, defectFile);
     Passes.add(P);
     Passes.run(*M);
-    
+  */
+	std::vector<TceList> &cepaths = executor.kmodule->cepaths;
     std::cerr << "CESearcher:: critical path are follow:\n";
     
     for(std::vector<TceList>::iterator pit=cepaths.begin(); pit!=cepaths.end(); ++pit)
