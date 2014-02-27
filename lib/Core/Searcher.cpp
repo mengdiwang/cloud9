@@ -64,10 +64,13 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
     
     getDefectList(defectFile, &dl);
     TCList ceList;
+    std::vector<Vertex> path;
     
     std::vector<unsigned>lines;
+    std::vector<BasicBlock *> bbpath;
     for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
     {
+
     	ceList.clear();
         std::string file = dit->first;
         lines = dit->second;
@@ -85,7 +88,18 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
                 }
             }
 
-            GetBBPathList( ,bb, ceList);
+            path.clear();
+            bbpath.clear();
+
+            findSinglePath(&path, rootv, targetv, bbG);
+            BasicBlock *tmpb = NULL;
+            for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
+            {
+            	tmpb = getBB(*it);
+            	if(tmpb != NULL) bbpath.push_back(tmpb);
+            }
+
+            GetBBPathList(bbpath, bb, ceList);
             cepaths.push_back(ceList);
             bb = NULL;
         }
