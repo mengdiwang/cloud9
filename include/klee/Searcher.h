@@ -104,21 +104,40 @@ namespace klee {
     }
   };
   
+
   class CEKSearcher : public Searcher{
   public:
-    typedef std::vector<llvm::TCeItem> TceList;
 
-	private:
+    struct TChoiceItem
+    {
+    	TChoiceItem(int _brChoice, llvm::Instruction *_Inst):Inst(_Inst),brChoice(_brChoice)
+    	{}
+    	int brChoice;
+    	llvm::Instruction *Inst;
+    };
+    typedef std::vector<TChoiceItem> TCList;
+
+  private:
     typedef std::map<std::string, std::vector<unsigned> > defectList;
 
     std::vector<ExecutionState*> states;
-    std::vector<TceList> cepaths;
-    std::vector<std::map<llvm::Instruction*, bool> > instMaps;
+    std::vector<TCList> cepaths;
     Executor &executor;
     int miss_ctr;
     
+    std::vector<std::map<llvm::Instruction*, bool> > instMaps;
+    std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
+    std::set<BasicBlock *> isCallsite;
+
+
     defectList dl;
+
+    BasicBlock *FindTarget(std::string file, unsigned line);
+    void BuildGraph(CallGraph *CG);
     void getDefectList(std::string docname, defectList *res);
+    void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList);
+    void findCEofSingleBB(BasicBlock *targetB, TCList &ceList);
+
     
   public:
     CEKSearcher(Executor &_executor, std::string cefile);

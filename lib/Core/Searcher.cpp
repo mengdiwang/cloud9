@@ -26,6 +26,7 @@
 
 #include "llvm/Constants.h"
 #include "llvm/Instructions.h"
+#include "llvm/BasicBlock.h"
 #include "llvm/Module.h"
 #include "llvm/Support/CallSite.h"
 #include "llvm/Support/CFG.h"
@@ -62,24 +63,215 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
     klee::KModule *km = executor.kmodule;
     
     getDefectList(defectFile, &dl);
+    TCList ceList;
     
     std::vector<unsigned>lines;
     for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
     {
+    	ceList.clear();
         std::string file = dit->first;
         lines = dit->second;
+        BasicBlock *bb = NULL;
         for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
         {
             std::cerr << "Looking for '" << file << "' (" << *lit << "')\n";
             for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
             {
-                for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
+                bb = FindTarget(file, *lit);
+                if(bb == NULL)
                 {
+                	std::cerr << "target:" << file << "' (" << *lit << "')Not find\n";
+
                 }
             }
-            
+
+            GetBBPathList( ,bb, ceList);
+            cepaths.push_back(ceList);
+            bb = NULL;
         }
     }
+}
+
+BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
+{
+	llvm::Module *M = executor.kmodule->module;
+    klee::KModule *km = executor.kmodule;
+    BasicBlock *bb = NULL;
+
+    std::cerr << "Looking for '" << file << "' (" << line << "')\n";
+    for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
+    {
+        for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
+        {
+        	InstructionInfo &instif = km->infos->getInfo(&*it);
+        	if(instif.line == line && instif.file == file)
+        	{
+        		std::cerr << "find the target\n";
+        		bb = &*it->getParent();
+        		return bb;
+        	}
+        }
+    }
+
+    return bb;
+}
+
+void CEKSearcher::BuildGraph(CallGraph *CG)
+{
+	llvm::Module *M = executor.kmodule->module;
+	for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+	{
+		Function *F = fit;
+		CallGraphNode *cgn = CG->getOrInsertFunction(F);
+
+		if(cgn == NULL)
+			continue;
+
+		//get the callees of the function *F
+		for(CallGraphNode::iterator cit=cgn->begin(); cit!=cgn->end(); ++cit)
+		{
+			CallGraphNode *tcgn = cit->second;
+			Function *tF = tcgn->getFunction();
+
+			if(tF == NULL)
+				continue;
+
+			if(tF->empty())
+				continue;
+
+			Instruction *myI = dyn_cast<Instruction>(cit->first);
+			//TODO if myI is in a scope or in a file
+
+			BasicBlock *callerBB = myI->getParent();
+			Function::iterator cBBit = tF->getEntryBlock();
+			BasicBlock *calleeBB = cBBit;
+			if(calleeBB == NULL)
+				continue;
+
+			CallBlockMap[std::make_pair(F,tF)].push_back(callerBB);
+			if(!isCallsite.count(callerBB))
+				isCallsite.insert(callerBB);
+
+		}
+	}
+}
+
+void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList)
+{
+	TCList list;
+	std::set<Function *> fset;
+	for(std::vector<BasicBlock *>::reverse_iterator vit=blist.rbegin(); vit!=blist.rend(); ++vit)
+	{
+		BasicBlock *frontB = *vit;
+		if(*vit == tBB || isCallsite.count(frontB) > 0)
+		{
+			list.clear();
+			if(!fset.count(frontB->getParent()))
+			{
+				findCEofSingleBB(frontB, list);
+				ceList.insert(ceList.begin(), list.begin(), list.end());
+
+				fset.insert(frontB->getParent());
+			}
+		}
+	}
+}
+
+void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
+{
+	if(targetB == NULL)
+		return;
+
+	Function *F = targetB->getParent();
+
+	std::queue<BasicBlock *> bbque;
+	std::set<BasicBlock *>bbset;
+	bbset.insert(targetB);
+	bbque.push(targetB);
+	BasicBlock *frontB = NULL;
+	int count = 0;
+
+	while(!bbque.empty())
+	{
+		frontB = bbque.front();
+		bbque.pop();
+
+		for(pred_iterator pi = pred_begin(frontB); pi != pred_end(frontB); ++pi)
+		{
+			BasicBlock *predB = *pi;
+			if(!bbset.count(predB))
+			{
+				bbset.insert(predB);
+				bbque.push(predB);
+				count ++;
+			}
+		}
+	}
+
+	if(frontB == NULL)
+		return;
+
+	std::set<BasicBlock *> seqset;
+
+	bbque.push(frontB);
+	seqset.insert(frontB);
+	while(!bbque.empty())
+	{
+		frontB = bbque.front();
+		bbque.pop();
+		if(frontB == targetB)
+			continue;
+		BranchInst *brInst = dyn_cast<BranchInst>(frontB->getTerminator());
+		if(brInst == NULL)
+			continue;
+
+		if(brInst->isConditional())
+		{
+			Instruction *inst = dyn_cast<Instruction>(brInst);
+			InstructionInfo *instinfo = executor.kmodule->infos->getInfo(inst);
+			BasicBlock *trueBB = brInst->getSuccessor(0);
+			BasicBlock *falseBB = brInst->getSuccessor(1);
+
+			if(bbset.count(trueBB) && !bbset.count(falseBB))
+			{
+				TChoiceItem cItem = TChoiceItem(inst, 0);
+				ceList.push_back(cItem);
+
+				if(!seqset.count(trueBB))
+				{
+					bbque.push(trueBB);
+					seqset.insert(trueBB);
+				}
+			}
+			else if(!bbset.count(trueBB) &&bbset.count(falseBB))
+			{
+				TChoiceItem cItem = TChoiceItem(inst, 1);
+				ceList.push_back(cItem);
+
+				if(!seqset.count(falseBB))
+				{
+					bbque.push(falseBB);
+					seqset.insert(falseBB);
+				}
+			}
+			else if(bbset.count(trueBB) && bbset.count(falseBB))
+			{
+				if(!seqset.count(trueBB))
+				{
+					bbque.push(trueBB);
+					seqset.insert(trueBB);
+				}
+
+				if(!seqset.count(falseBB))
+				{
+					bbque.push(falseBB);
+					seqset.insert(falseBB);
+				}
+
+			}
+
+		}
+	}
 }
 
 void CEKSearcher::getDefectList(std::string docname, defectList *res)
@@ -140,7 +332,7 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_ex
     int count = 0;
 
   */
-	int count
+	int count;
 	std::vector<TceList> &cepaths = executor.kmodule->cepaths;
     std::cerr << "CESearcher:: critical path are follow:\n";
     
