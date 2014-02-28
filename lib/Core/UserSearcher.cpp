@@ -21,6 +21,9 @@ namespace {
   cl::opt<std::string>
   UseCESearch("use-ce-search", cl::desc("Specity input defect file"));
     
+  cl::opt<std::string>
+  UseCEKSearch("use-cek-search", cl::desc("Specity input defect file"));
+
   cl::opt<bool>
   UseRandomSearch("use-random-search");
 
@@ -116,6 +119,8 @@ Searcher *klee::constructUserSearcher(Executor &executor, Searcher *original) {
     searcher = new RandomSearcher();
     } else if (UseCESearch!=""){
         searcher = new CESearcher(executor, UseCESearch);
+    } else if (UseCEKSearch !="")
+    	searcher = new CEKSearcher(executor, UseCESearch);
     } else {
     searcher = new DFSSearcher();
     }

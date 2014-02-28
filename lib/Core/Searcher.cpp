@@ -26,17 +26,30 @@
 
 #include "llvm/Constants.h"
 #include "llvm/Instructions.h"
+#include "llvm/BasicBlock.h"
 #include "llvm/Module.h"
 #include "llvm/Support/CallSite.h"
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/CommandLine.h"
 
+#include "llvm/Support/InstIterator.h"
+#include "llvm/Support/CallSite.h"
 #include "llvm/PassManager.h"
-#include "llvm/Analysis/CEPass.h"
+//#include "llvm/Analysis/CEPass.h"
 
 #include <cassert>
 #include <fstream>
 #include <climits>
+
+#include <boost/config.hpp>
+#include <boost/utility.hpp>
+#include <boost/graph/adjacency_list.hpp>
+//#include <boost/graph/graphviz.hpp> //graphviz not compatitable with dijkstra
+#include <boost/graph/graph_traits.hpp>
+#include <boost/graph/depth_first_search.hpp>
+#include <boost/graph/dijkstra_shortest_paths.hpp>
+
+using namespace boost;
 
 using namespace klee;
 using namespace llvm;
@@ -54,27 +67,436 @@ Searcher::~Searcher() {
 }
 
 ///
+//----------CEKSearcher-------------//
+
+bool CEKSearcher::CompareByLine(const TChoiceItem &a, const TChoiceItem &b)
+{
+
+    return a.line < b.line;
+}
+
+CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
+{
+    llvm::Module *M = executor.kmodule->module;
+    klee::KModule *km = executor.kmodule;
+    
+    defectList dl;
+    getDefectList(defectFile, &dl);
+    if(dl.size() <= 0)
+    {
+        std::cerr << "No entry in defectFile.t\n";
+        return;
+    }
+    
+    TCList ceList;
+    std::vector<boost::Vertex> path;
+    
+    BuildGraph();
+    
+    BasicBlock *rootBB = NULL;
+    for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+    {
+    	if(fit->getNameStr()=="main")
+    	{
+    		if(rootBB!=NULL)
+    		{
+    			std::cerr <<"Multi main\n";
+    		}
+    		else
+    		{
+    			rootBB = fit->getEntryBlock();
+    		}
+    	}
+    }
+
+    std::vector<unsigned>lines;
+    std::vector<BasicBlock *> bbpath;
+    for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
+    {
+
+    	ceList.clear();
+        std::string file = dit->first;
+        lines = dit->second;
+        BasicBlock *bb = NULL;
+        for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
+        {
+            std::cerr << "Looking for '" << file << "' (" << *lit << "')\n";
+            for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
+            {
+                bb = FindTarget(file, *lit);
+                if(bb == NULL)
+                {
+                	std::cerr << "target:" << file << "' (" << *lit << "')Not find\n";
+                    continue;
+                }
+            }
+            
+            if(bb == NULL || rootBB == NULL)
+                continue;
+
+            std::cerr << "inter-Blocks Dijkstra\n";
+            //interprocedural
+            boost::Vertex rootv = bbMap[rootBB];
+            boost::Vertex targetv = bbMap[bb];
+            path.clear();
+            bbpath.clear();
+
+            findSinglePath(&path, rootv, targetv, bbG);
+            
+            BasicBlock *tmpb = NULL;
+            for(std::vector<boost::Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
+            {
+            	tmpb = getBB(*it);
+            	if(tmpb != NULL) bbpath.push_back(tmpb);
+            }
+
+            GetBBPathList(bbpath, bb, ceList);
+            cepaths.push_back(ceList);
+            bb = NULL;
+        }
+    }
+
+    std::cerr <<"Prepare done\n";
+}
+
+BasicBlock *CEKSearcher::getBB(boost::Vertex v)
+{
+    for(std::map<BasicBlock *, boost::Vertex>::iterator it=bbMap.begin(); it!=bbMap.end(); ++it)
+    {
+        if(v == it->second)
+            return it->first;
+    }
+    return NULL;
+}
+
+//find the path on the built graph
+void CEKSearcher::findSinglePath(std::vector<boost::Vertex> *path, boost::Vertex root, boost::Vertex target, Graph &graph)
+{
+    std::vector<boost::Vertex> p(num_vertices(graph));
+    std::vector<int> d(num_vertices(graph));
+    property_map<Graph, vertex_index_t>::type indexmap = get(vertex_index, graph);
+    property_map<Graph, edge_weight_t>::type bbWeightmap = get(edge_weight, graph);
+    
+    boost::dijkstra_shortest_paths(graph, root, &p[0], &d[0], bbWeightmap, indexmap,
+                            std::less<int>(), closed_plus<int>(),
+                            (std::numeric_limits<int>::max)(), 0,
+                            default_dijkstra_visitor());
+    
+    //  std::cout << "shortest path:" << std::endl;
+    while(p[target] != target)
+    {
+        path->insert(path->begin(), target);
+        target = p[target];
+    }
+    // Put the root in the list aswell since the loop above misses that one
+    if(!path->empty())
+        path->insert(path->begin(), root);
+    
+}
+
+
+BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
+{
+	llvm::Module *M = executor.kmodule->module;
+    klee::KModule *km = executor.kmodule;
+    BasicBlock *bb = NULL;
+
+    std::cerr << "Looking for '" << file << "' (" << line << "')\n";
+    for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
+    {
+        for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
+        {
+        	InstructionInfo &instif = km->infos->getInfo(&*it);
+        	if(instif.line == line && instif.file == file)
+        	{
+        		std::cerr << "find the target\n";
+        		bb = &*it->getParent();
+        		return bb;
+        	}
+        }
+    }
+
+    return bb;
+}
+
+void CEKSearcher::addBBEdges(BasicBlock *BB)
+{
+    graph_traits<Graph>::edge_descriptor e;
+    bool inserted;
+    property_map<Graph, edge_weight_t>::type bbWeightmap = get(edge_weight, bbG);
+    
+    for(succ_iterator si = succ_begin(BB); si!=succ_end(BB); ++si)
+    {
+        boost::tie(e, inserted) = add_edge(bbMap[BB], bbMap[*si], bbG);
+        if(inserted)
+            addBBEdges(*si);
+        bbWeightmap[e] = 1;
+    }
+}
+
+
+void CEKSearcher::BuildGraph()
+{
+	llvm::Module *M = executor.kmodule->module;
+	/*
+    for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+	{
+		Function *F = fit;
+		CallGraphNode *cgn = CG->getOrInsertFunction(F);
+
+		if(cgn == NULL)
+			continue;
+
+		//get the callees of the function *F
+		for(CallGraphNode::iterator cit=cgn->begin(); cit!=cgn->end(); ++cit)
+		{
+			CallGraphNode *tcgn = cit->second;
+			Function *tF = tcgn->getFunction();
+
+			if(tF == NULL)
+				continue;
+
+			if(tF->empty())
+				continue;
+
+			Instruction *myI = dyn_cast<Instruction>(cit->first);
+			//TODO if myI is in a scope or in a file
+
+			BasicBlock *callerBB = myI->getParent();
+			Function::iterator cBBit = tF->getEntryBlock();
+			BasicBlock *calleeBB = cBBit;
+			if(calleeBB == NULL)
+				continue;
+
+			CallBlockMap[std::make_pair(F,tF)].push_back(callerBB);
+			if(!isCallsite.count(callerBB))
+				isCallsite.insert(callerBB);
+
+		}
+	}
+     */
+    
+    for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+    {
+        Function *F = fit;
+        //funcMap[F] = add_vertex(funcG);
+        for(Function::iterator bbit = F->begin(), bb_ie=F->end(); bbit != bb_ie; ++bbit)
+        {
+            BasicBlock *BB = bbit;
+            bbMap[BB] = add_vertex(bbG);
+        }
+    }
+    
+    boost::property_map<Graph, boost::edge_weight_t>::type bbWeightmap = boost::get(boost::edge_weight, bbG);
+    
+    llvm::Module *M = executor.kmodule->module;
+	for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+    {
+        boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
+        
+        for(inst_iterator it = inst_begin(fit), ie = inst_end(fit); it!=ie; ++it)
+        {
+            llvm::Instruction *i = &*it;
+            if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
+            {
+                BasicBlock *BB = (&*fit)->getEntryBlock();
+                addBBEdges(BB);
+                
+                CallSite cs(i);
+                Function *f = cs.getCalledFunction();
+                
+                if(f == NULL)
+                    continue;
+                if(f->empty())
+                    continue;
+            
+                BasicBlock *callerBB = i->getParent();
+                Function::iterator cBBit = f->getEntryBlock();
+                BasicBlock *calleeBB = &*cBBit;
+                if(calleeBB == NULL)
+                    continue;
+                
+                boost::tie(e, inserted) = boost::add_edge(bbMap[callerBB], bbMap[calleeBB], bbG);
+                bbWeightmap[e] = 1;
+                
+                CallBlockMap[std::make_pair(fit, f)].push_back(callerBB);
+                if(!isCallsite.count(callerBB))
+                    isCallsite.insert(callerBB);
+                
+            }
+        }
+    }
+}
+
+void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList)
+{
+	TCList list;
+	std::set<Function *> fset;
+	for(std::vector<BasicBlock *>::reverse_iterator vit=blist.rbegin(); vit!=blist.rend(); ++vit)
+	{
+		BasicBlock *frontB = *vit;
+		if(*vit == tBB || isCallsite.count(frontB) > 0)
+		{
+			list.clear();
+			if(!fset.count(frontB->getParent()))
+			{
+				findCEofSingleBB(frontB, list);
+				ceList.insert(ceList.begin(), list.begin(), list.end());
+
+				fset.insert(frontB->getParent());
+			}
+		}
+	}
+}
+
+void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
+{
+	if(targetB == NULL)
+		return;
+
+	Function *F = targetB->getParent();
+
+	std::queue<BasicBlock *> bbque;
+	std::set<BasicBlock *>bbset;
+	bbset.insert(targetB);
+	bbque.push(targetB);
+	BasicBlock *frontB = NULL;
+	int count = 0;
+
+	while(!bbque.empty())
+	{
+		frontB = bbque.front();
+		bbque.pop();
+
+		for(pred_iterator pi = pred_begin(frontB); pi != pred_end(frontB); ++pi)
+		{
+			BasicBlock *predB = *pi;
+			if(!bbset.count(predB))
+			{
+				bbset.insert(predB);
+				bbque.push(predB);
+				count ++;
+			}
+		}
+	}
+
+	if(frontB == NULL)
+		return;
+
+	std::set<BasicBlock *> seqset;
+
+	bbque.push(frontB);
+	seqset.insert(frontB);
+	while(!bbque.empty())
+	{
+		frontB = bbque.front();
+		bbque.pop();
+		if(frontB == targetB)
+			continue;
+		BranchInst *brInst = dyn_cast<BranchInst>(frontB->getTerminator());
+		if(brInst == NULL)
+			continue;
+
+		if(brInst->isConditional())
+		{
+			Instruction *inst = dyn_cast<Instruction>(brInst);
+			InstructionInfo *instinfo = executor.kmodule->infos->getInfo(inst);
+			BasicBlock *trueBB = brInst->getSuccessor(0);
+			BasicBlock *falseBB = brInst->getSuccessor(1);
+
+			unsigned lineno = instinfo->line;
+
+			if(bbset.count(trueBB) && !bbset.count(falseBB))
+			{
+				TChoiceItem cItem = TChoiceItem(inst, 0, lineno);
+				ceList.push_back(cItem);
+
+				if(!seqset.count(trueBB))
+				{
+					bbque.push(trueBB);
+					seqset.insert(trueBB);
+				}
+			}
+			else if(!bbset.count(trueBB) &&bbset.count(falseBB))
+			{
+				TChoiceItem cItem = TChoiceItem(inst, 1, lineno);
+				ceList.push_back(cItem);
+
+				if(!seqset.count(falseBB))
+				{
+					bbque.push(falseBB);
+					seqset.insert(falseBB);
+				}
+			}
+			else if(bbset.count(trueBB) && bbset.count(falseBB))
+			{
+				if(!seqset.count(trueBB))
+				{
+					bbque.push(trueBB);
+					seqset.insert(trueBB);
+				}
+
+				if(!seqset.count(falseBB))
+				{
+					bbque.push(falseBB);
+					seqset.insert(falseBB);
+				}
+
+			}
+
+		}
+	}
+	std::sort(ceList.begin(), ceList.end(), CompareByLine);
+}
+
+void CEKSearcher::getDefectList(std::string docname, defectList *res)
+{
+    std::cerr << "Open defect file " << docname << "\n";
+    std::ifstream fin(docname.c_str());
+    std::string fname="";
+    std::vector<unsigned> lineList;
+    while(!fin.eof())
+    {
+        std::string filename="";
+        unsigned lineno;
+        
+        fin >> filename >> lineno;
+        if(filename.length() < 1)
+            break;
+        errs() << "readin:" << filename << "\n";
+        if(fname == "")
+        {
+            fname = filename;
+        }
+        
+        if(fname != filename)
+        {
+            res->insert(std::make_pair(filename, lineList));
+            lineList.clear();
+            fname = filename;
+        }
+        
+        lineList.push_back(lineno);
+    }
+    //tail add
+    if(lineList.size()>0 && fname != "")
+    {
+        res->insert(std::make_pair(fname, lineList));
+        lineList.clear();
+    }
+    
+    fin.close();
+}
+
+/*
 //----------CESearcher--------------//
 CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
 {
     //build the path list
 
-/*	Module *M = executor.kmodule->module;
-    PassManager Passes;
-    
-    Pass *P = createCEPass(&cepaths, defectFile);
-    Passes.add(P);
-    Passes.run(*M);
-
-
-*/
-    std::cerr << "CESearcher:: Critical path are follow:\n";
-    
-    int count = 0;
-
-  
+	int count;
 	std::vector<TceList> &cepaths = executor.kmodule->cepaths;
-
+    std::cerr << "CESearcher:: critical path are follow:\n";
     
     if(cepaths.size() == 0)
 		std::cerr << "CESearcher:: Warning cepaths has no element\n";
@@ -94,7 +516,7 @@ CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_ex
 
             //std::cerr << "["  << " {" << bb->getParent() << "} [" << bb << "] - ";
 
-            std::cerr << "[" /*<< bb->getName()*/ << " {" << bb->getParent() << "} [" << bb << "] - ";
+            std::cerr << "["  << " {" << bb->getParent() << "} [" << bb << "] - ";
 
         }
         std::cerr << "\n";
@@ -147,9 +569,8 @@ void CESearcher::update(ExecutionState *current,
 	}
 }
 
-
 //~
-
+*/
 
 ExecutionState &DFSSearcher::selectState() {
   return *states.back();
