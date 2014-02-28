@@ -168,10 +168,15 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
 
             GetBBPathList(bbpath, bb, ceList);
             cepaths.push_back(ceList);
-            bb = NULL;
+            bb = NULL;	
         }
     }
 
+	for(TCList::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
+	{
+		std::cerr << *tit.Inst << " at line:" << *tit.line << " with choice:" << *tit.brChoice << "\n"; 
+	}
+	
     std::cerr <<"Preparation done\n";
 }
 
@@ -249,7 +254,6 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
     klee::KModule *km = executor.kmodule;
     BasicBlock *bb = NULL;
 
-    std::cerr << "Looking for '" << file << "' (" << line << "')\n";
     for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
     {
         for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
@@ -292,6 +296,7 @@ void CEKSearcher::BuildGraph()
     {
         Function *F = fit;
         //funcMap[F] = add_vertex(funcG);
+		std::cerr << "Add block in the function " << F->getName().str() << "\n";
         for(Function::iterator bbit = F->begin(), bb_ie=F->end(); bbit != bb_ie; ++bbit)
         {
             BasicBlock *BB = bbit;
@@ -338,6 +343,7 @@ void CEKSearcher::BuildGraph()
                 bbWeightmap[e] = 1;
                 
                 CallBlockMap[std::make_pair(fit, f)].push_back(callerBB);
+				std::cerr << "function:" << fit->getName().str()  << " call function:" << f->getName().str()<<"\n";
                 if(!isCallsite.count(callerBB))
                     isCallsite.insert(callerBB);
                 
@@ -514,7 +520,7 @@ std::string CEKSearcher::getBBName(Vertex v)
 			{
 				Instruction *end_ins = dyn_cast<Instruction>(BB->getTerminator());
 				Instruction *begin_ins = BB->getFirstNonPHIOrDbg();
-				ss << executor.kmodule->infos->getInfo(begin_ins).file;
+				ss << extractfilename(executor.kmodule->infos->getInfo(begin_ins).file);
 				ss << " ";
 				ss << executor.kmodule->infos->getInfo(begin_ins).line;
 				ss << "-";
