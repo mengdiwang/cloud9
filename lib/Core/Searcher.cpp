@@ -110,14 +110,14 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
 
     std::vector<unsigned>lines;
     std::vector<BasicBlock *> bbpath;
-	std::cerr <<"size of defectList:" << defectList.size() <<"\n";
+	std::cerr <<"size of defectList:" << dl.size() <<"\n";
     for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
     {
     	ceList.clear();
         std::string file = dit->first;
         lines = dit->second;
         BasicBlock *bb = NULL;
-		std::cerr << "size of list to find:" << line.size() << "\n";
+		std::cerr << "size of list to find:" << lines.size() << "\n";
         for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
         {
             std::cerr << "Looking for '" << file << "' (" << *lit << ")\n";
