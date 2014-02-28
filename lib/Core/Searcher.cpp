@@ -349,9 +349,7 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 {
 	if(targetB == NULL)
 		return;
-
-	Function *F = targetB->getParent();
-
+	//Function *F = targetB->getParent();
 	std::queue<BasicBlock *> bbque;
 	std::set<BasicBlock *>bbset;
 	bbset.insert(targetB);

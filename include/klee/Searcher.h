@@ -114,11 +114,7 @@ namespace klee {
     }
   };
   */
-
-  class CEKSearcher : public Searcher{
-  public:
-
-    struct TChoiceItem
+	struct TChoiceItem
     {
     	TChoiceItem(llvm::Instruction *_Inst, int _brChoice, unsigned _line):Inst(_Inst),brChoice(_brChoice),line(_line)
     	{}
@@ -126,6 +122,9 @@ namespace klee {
 		int brChoice;
     	unsigned line;
     };
+	
+  class CEKSearcher : public Searcher{
+  public:
     typedef std::vector<TChoiceItem> TCList;
 
   private:
