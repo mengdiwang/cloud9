@@ -98,6 +98,16 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
         return;
     }
     
+	for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+	{
+		int count = 0;
+		for(llvm::Function::iterator bit=fit->begin(); bit!=fit->end(); ++bit)
+		{
+			count ++;
+		}
+		std::cerr << count << " blocks in function " << fit->getName().str() << "\n";
+	}
+
     TCList ceList;
     std::vector<Vertex> path;
     
@@ -284,6 +294,7 @@ void CEKSearcher::addBBEdges(BasicBlock *BB)
     
     for(succ_iterator si = succ_begin(BB); si!=succ_end(BB); ++si)
     {
+		std::cerr << "add block\n";
         boost::tie(e, inserted) = add_edge(bbMap[BB], bbMap[*si], bbG);
         if(inserted)
             addBBEdges(*si);
@@ -315,8 +326,9 @@ void CEKSearcher::BuildGraph()
         boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
         
 		Function *F = fit;
-		//if(!F->empty())
+		if(!F->empty())
 		{
+			std::cerr << "add unempty function:" << F->getName().str() << "\n";
 		    BasicBlock *BB = &F->getEntryBlock();
 			addBBEdges(BB);
 		}
