@@ -118,7 +118,7 @@ Searcher *klee::constructUserSearcher(Executor &executor, Searcher *original) {
     //} else if (UseCESearch!=""){
         //searcher = new CESearcher(executor, UseCESearch);
     } else if (UseCEKSearch !=""){
-	searcher = new CEKSearcher(executor, UseCESearch);
+	searcher = new CEKSearcher(executor, UseCEKSearch);
     } else {
     searcher = new DFSSearcher();
     }
