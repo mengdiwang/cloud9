@@ -103,6 +103,7 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
     		}
     		else
     		{
+				std::cerr << "get the main\n";
     			rootBB = &(fit->getEntryBlock());
     		}
     	}
