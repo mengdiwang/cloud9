@@ -31,17 +31,19 @@
 // FIXME: Move out of header, use llvm streams.
 #include <ostream>
 
+using namespace boost;
+
 namespace llvm {
   class BasicBlock;
   class Function;
   class Instruction;
 }
 
-
+/*
 namespace boost{
     class Vertex;
     
-}
+}*/
 
 
 namespace klee {
@@ -162,8 +164,8 @@ namespace klee {
     void findCEofSingleBB(BasicBlock *targetB, TCList &ceList);
     
     void addBBEdges(llvm::BasicBlock *BB);
-    BasicBlock *getBB(boost::Vertex v);
-    void findSinglePath(std::vector<boost::Vertex> *path, boost::Vertex root, boost::Vertex target, Graph &graph);
+    BasicBlock *getBB(Vertex v);
+    void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target, Graph &graph);
 
     bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b);
 

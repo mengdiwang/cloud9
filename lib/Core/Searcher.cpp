@@ -89,7 +89,7 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
     }
     
     TCList ceList;
-    std::vector<boost::Vertex> path;
+    std::vector<Vertex> path;
     
     BuildGraph();
     
@@ -104,7 +104,7 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
     		}
     		else
     		{
-    			rootBB = fit->getEntryBlock();
+    			rootBB = &(fit->getEntryBlock());
     		}
     	}
     }
@@ -136,15 +136,15 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
 
             std::cerr << "inter-Blocks Dijkstra\n";
             //interprocedural
-            boost::Vertex rootv = bbMap[rootBB];
-            boost::Vertex targetv = bbMap[bb];
+            Vertex rootv = bbMap[rootBB];
+            Vertex targetv = bbMap[bb];
             path.clear();
             bbpath.clear();
 
             findSinglePath(&path, rootv, targetv, bbG);
             
             BasicBlock *tmpb = NULL;
-            for(std::vector<boost::Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
+            for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
             {
             	tmpb = getBB(*it);
             	if(tmpb != NULL) bbpath.push_back(tmpb);
@@ -191,9 +191,9 @@ void CEKSearcher::update(ExecutionState *current,
   }
 }
 
-BasicBlock *CEKSearcher::getBB(boost::Vertex v)
+BasicBlock *CEKSearcher::getBB(Vertex v)
 {
-    for(std::map<BasicBlock *, boost::Vertex>::iterator it=bbMap.begin(); it!=bbMap.end(); ++it)
+    for(std::map<BasicBlock *, Vertex>::iterator it=bbMap.begin(); it!=bbMap.end(); ++it)
     {
         if(v == it->second)
             return it->first;
@@ -202,9 +202,9 @@ BasicBlock *CEKSearcher::getBB(boost::Vertex v)
 }
 
 //find the path on the built graph
-void CEKSearcher::findSinglePath(std::vector<boost::Vertex> *path, boost::Vertex root, boost::Vertex target, Graph &graph)
+void CEKSearcher::findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target, Graph &graph)
 {
-    std::vector<boost::Vertex> p(num_vertices(graph));
+    std::vector<Vertex> p(num_vertices(graph));
     std::vector<int> d(num_vertices(graph));
     property_map<Graph, vertex_index_t>::type indexmap = get(vertex_index, graph);
     property_map<Graph, edge_weight_t>::type bbWeightmap = get(edge_weight, graph);
@@ -294,7 +294,7 @@ void CEKSearcher::BuildGraph()
             llvm::Instruction *i = &*it;
             if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
             {
-                BasicBlock *BB = (&*fit)->getEntryBlock();
+                BasicBlock *BB = &((&*fit)->getEntryBlock());
                 addBBEdges(BB);
                 
                 CallSite cs(i);
@@ -306,7 +306,7 @@ void CEKSearcher::BuildGraph()
                     continue;
             
                 BasicBlock *callerBB = i->getParent();
-                Function::iterator cBBit = f->getEntryBlock();
+                Function::iterator cBBit = &(f->getEntryBlock());
                 BasicBlock *calleeBB = &*cBBit;
                 if(calleeBB == NULL)
                     continue;
