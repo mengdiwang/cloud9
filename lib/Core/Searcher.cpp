@@ -432,11 +432,11 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 		if(brInst->isConditional())
 		{
 			Instruction *inst = dyn_cast<Instruction>(brInst);
-			InstructionInfo *instinfo = executor.kmodule->infos->getInfo(inst);
+			InstructionInfo &instinfo = executor.kmodule->infos->getInfo(inst);
 			BasicBlock *trueBB = brInst->getSuccessor(0);
 			BasicBlock *falseBB = brInst->getSuccessor(1);
 
-			unsigned lineno = instinfo->line;
+			unsigned lineno = instinfo.line;
 
 			if(bbset.count(trueBB) && !bbset.count(falseBB))
 			{
