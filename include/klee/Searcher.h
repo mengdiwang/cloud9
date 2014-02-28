@@ -124,16 +124,17 @@ namespace klee {
 
     struct TChoiceItem
     {
-    	TChoiceItem(int _brChoice, llvm::Instruction *_Inst):Inst(_Inst),brChoice(_brChoice)
+    	TChoiceItem(llvm::Instruction *_Inst, int _brChoice, unsigned _line):Inst(_Inst),brChoice(_brChoice),line(_line)
     	{}
     	int brChoice;
     	llvm::Instruction *Inst;
+    	unsigned line;
     };
     typedef std::vector<TChoiceItem> TCList;
 
   private:
     typedef std::map<std::string, std::vector<unsigned> > defectList;
-      typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property,
+    typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property,
     boost::property<boost::edge_weight_t, int> > Graph;
     typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
     typedef boost::graph_traits<Graph>::edge_descriptor Edge;
@@ -160,8 +161,10 @@ namespace klee {
     void findCEofSingleBB(BasicBlock *targetB, TCList &ceList);
     
     void addBBEdges(llvm::BasicBlock *BB);
-    BasicBlock *getBB(boost::Vertex v)
-    void findSinglePath(std::vector<Vertex> *path, boost::Vertex root, boost::Vertex target, Graph &graph)
+    BasicBlock *getBB(boost::Vertex v);
+    void findSinglePath(std::vector<boost::Vertex> *path, boost::Vertex root, boost::Vertex target, Graph &graph);
+
+    bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b);
 
     
   public:

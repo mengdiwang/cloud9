@@ -69,6 +69,12 @@ Searcher::~Searcher() {
 ///
 //----------CEKSearcher-------------//
 
+bool CEKSearcher::CompareByLine(const TChoiceItem &a, const TChoiceItem &b)
+{
+
+    return a.line < b.line;
+}
+
 CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
 {
     llvm::Module *M = executor.kmodule->module;
@@ -87,6 +93,22 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
     
     BuildGraph();
     
+    BasicBlock *rootBB = NULL;
+    for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+    {
+    	if(fit->getNameStr()=="main")
+    	{
+    		if(rootBB!=NULL)
+    		{
+    			std::cerr <<"Multi main\n";
+    		}
+    		else
+    		{
+    			rootBB = fit->getEntryBlock();
+    		}
+    	}
+    }
+
     std::vector<unsigned>lines;
     std::vector<BasicBlock *> bbpath;
     for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
@@ -115,7 +137,7 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
             std::cerr << "inter-Blocks Dijkstra\n";
             //interprocedural
             boost::Vertex rootv = bbMap[rootBB];
-            boost::Vertex targetv = bbMap[tBB];
+            boost::Vertex targetv = bbMap[bb];
             path.clear();
             bbpath.clear();
 
@@ -146,14 +168,14 @@ BasicBlock *CEKSearcher::getBB(boost::Vertex v)
 }
 
 //find the path on the built graph
-void CEKSearcher::findSinglePath(std::vector<Vertex> *path, boost::Vertex root, boost::Vertex target, Graph &graph)
+void CEKSearcher::findSinglePath(std::vector<boost::Vertex> *path, boost::Vertex root, boost::Vertex target, Graph &graph)
 {
     std::vector<boost::Vertex> p(num_vertices(graph));
     std::vector<int> d(num_vertices(graph));
     property_map<Graph, vertex_index_t>::type indexmap = get(vertex_index, graph);
     property_map<Graph, edge_weight_t>::type bbWeightmap = get(edge_weight, graph);
     
-    dijkstra_shortest_paths(graph, root, &p[0], &d[0], bbWeightmap, indexmap,
+    boost::dijkstra_shortest_paths(graph, root, &p[0], &d[0], bbWeightmap, indexmap,
                             std::less<int>(), closed_plus<int>(),
                             (std::numeric_limits<int>::max)(), 0,
                             default_dijkstra_visitor());
@@ -254,7 +276,7 @@ void CEKSearcher::BuildGraph()
     
     for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
     {
-        //Function *F = fit;
+        Function *F = fit;
         //funcMap[F] = add_vertex(funcG);
         for(Function::iterator bbit = F->begin(), bb_ie=F->end(); bbit != bb_ie; ++bbit)
         {
@@ -295,7 +317,7 @@ void CEKSearcher::BuildGraph()
                 boost::tie(e, inserted) = boost::add_edge(bbMap[callerBB], bbMap[calleeBB], bbG);
                 bbWeightmap[e] = 1;
                 
-                CallBlockMap[std::make_pair(F,tF)].push_back(callerBB);
+                CallBlockMap[std::make_pair(fit, f)].push_back(callerBB);
                 if(!isCallsite.count(callerBB))
                     isCallsite.insert(callerBB);
                 
@@ -380,9 +402,11 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 			BasicBlock *trueBB = brInst->getSuccessor(0);
 			BasicBlock *falseBB = brInst->getSuccessor(1);
 
+			unsigned lineno = instinfo->line;
+
 			if(bbset.count(trueBB) && !bbset.count(falseBB))
 			{
-				TChoiceItem cItem = TChoiceItem(inst, 0);
+				TChoiceItem cItem = TChoiceItem(inst, 0, lineno);
 				ceList.push_back(cItem);
 
 				if(!seqset.count(trueBB))
@@ -393,7 +417,7 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 			}
 			else if(!bbset.count(trueBB) &&bbset.count(falseBB))
 			{
-				TChoiceItem cItem = TChoiceItem(inst, 1);
+				TChoiceItem cItem = TChoiceItem(inst, 1, lineno);
 				ceList.push_back(cItem);
 
 				if(!seqset.count(falseBB))
@@ -420,6 +444,7 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 
 		}
 	}
+	std::sort(ceList.begin(), ceList.end(), CompareByLine);
 }
 
 void CEKSearcher::getDefectList(std::string docname, defectList *res)
