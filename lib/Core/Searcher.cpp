@@ -326,9 +326,10 @@ void CEKSearcher::BuildGraph()
             std::cerr << "reach instruction " << it << "\n";
             if(it->getOpcode() == Instruction::Call || it->getOpcode() == Instruction::Invoke)
             {
+                Instruction *i = it;
 				std::cerr << "get caller instruction\n";
                 
-                CallSite cs(it);
+                CallSite cs(i);
                 Function *f = cs.getCalledFunction();
                 
                 if(f == NULL)
@@ -336,7 +337,7 @@ void CEKSearcher::BuildGraph()
                 if(f->empty())
                     continue;
             
-                BasicBlock *callerBB = it->getParent();
+                BasicBlock *callerBB = i->getParent();
                 BasicBlock *calleeBB = &f->getEntryBlock();
                 if(calleeBB == NULL)
                     continue;
