@@ -270,44 +270,7 @@ void CEKSearcher::addBBEdges(BasicBlock *BB)
 void CEKSearcher::BuildGraph()
 {
 	llvm::Module *M = executor.kmodule->module;
-	/*
-    for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
-	{
-		Function *F = fit;
-		CallGraphNode *cgn = CG->getOrInsertFunction(F);
 
-		if(cgn == NULL)
-			continue;
-
-		//get the callees of the function *F
-		for(CallGraphNode::iterator cit=cgn->begin(); cit!=cgn->end(); ++cit)
-		{
-			CallGraphNode *tcgn = cit->second;
-			Function *tF = tcgn->getFunction();
-
-			if(tF == NULL)
-				continue;
-
-			if(tF->empty())
-				continue;
-
-			Instruction *myI = dyn_cast<Instruction>(cit->first);
-			//TODO if myI is in a scope or in a file
-
-			BasicBlock *callerBB = myI->getParent();
-			Function::iterator cBBit = tF->getEntryBlock();
-			BasicBlock *calleeBB = cBBit;
-			if(calleeBB == NULL)
-				continue;
-
-			CallBlockMap[std::make_pair(F,tF)].push_back(callerBB);
-			if(!isCallsite.count(callerBB))
-				isCallsite.insert(callerBB);
-
-		}
-	}
-     */
-    
     for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
     {
         Function *F = fit;
@@ -473,9 +436,7 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 					bbque.push(falseBB);
 					seqset.insert(falseBB);
 				}
-
 			}
-
 		}
 	}
 	std::sort(ceList.begin(), ceList.end(), CompareByLine);
@@ -495,7 +456,7 @@ void CEKSearcher::getDefectList(std::string docname, defectList *res)
         fin >> filename >> lineno;
         if(filename.length() < 1)
             break;
-        errs() << "readin:" << filename << "\n";
+        std::cerr << "readin:" << filename << "\n";
         if(fname == "")
         {
             fname = filename;
