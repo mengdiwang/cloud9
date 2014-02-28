@@ -131,7 +131,7 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
                 }
             }
             
-            if(bb==NULL)
+            if(bb == NULL || rootBB == NULL)
                 continue;
 
             std::cerr << "inter-Blocks Dijkstra\n";
@@ -155,6 +155,8 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
             bb = NULL;
         }
     }
+
+    std::cerr <<"Prepare done\n";
 }
 
 BasicBlock *CEKSearcher::getBB(boost::Vertex v)
