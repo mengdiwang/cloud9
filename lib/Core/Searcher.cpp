@@ -327,7 +327,7 @@ void CEKSearcher::BuildGraph()
             {
 				std::cerr << "get caller instruction\n";
                 
-                CallSite cs(i);
+                CallSite cs(it);
                 Function *f = cs.getCalledFunction();
                 
                 if(f == NULL)
@@ -335,7 +335,7 @@ void CEKSearcher::BuildGraph()
                 if(f->empty())
                     continue;
             
-                BasicBlock *callerBB = i->getParent();
+                BasicBlock *callerBB = it->getParent();
                 BasicBlock *calleeBB = &f->getEntryBlock();
                 if(calleeBB == NULL)
                     continue;
