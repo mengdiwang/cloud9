@@ -167,10 +167,15 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
 
             GetBBPathList(bbpath, bb, ceList);
             cepaths.push_back(ceList);
-            bb = NULL;
+            bb = NULL;	
         }
     }
 
+	for(TCList::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
+	{
+		std::cerr << *tit.Inst << " at line:" << *tit.line << " with choice:" << *tit.brChoice << "\n"; 
+	}
+	
     std::cerr <<"Preparation done\n";
 }
 
@@ -248,7 +253,6 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
     klee::KModule *km = executor.kmodule;
     BasicBlock *bb = NULL;
 
-    std::cerr << "Looking for '" << file << "' (" << line << "')\n";
     for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
     {
         for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
