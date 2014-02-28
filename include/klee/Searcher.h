@@ -39,13 +39,6 @@ namespace llvm {
   class Instruction;
 }
 
-/*
-namespace boost{
-    class Vertex;
-    
-}*/
-
-
 namespace klee {
   template<class T> class DiscretePDF;
   class ExecutionState;
@@ -129,8 +122,8 @@ namespace klee {
     {
     	TChoiceItem(llvm::Instruction *_Inst, int _brChoice, unsigned _line):Inst(_Inst),brChoice(_brChoice),line(_line)
     	{}
-    	int brChoice;
     	llvm::Instruction *Inst;
+		int brChoice;
     	unsigned line;
     };
     typedef std::vector<TChoiceItem> TCList;
@@ -167,7 +160,7 @@ namespace klee {
     BasicBlock *getBB(Vertex v);
     void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target, Graph &graph);
 
-    bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b);
+    //bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b);
 
     
   public:

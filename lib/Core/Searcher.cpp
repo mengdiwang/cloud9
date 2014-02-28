@@ -69,7 +69,7 @@ Searcher::~Searcher() {
 ///
 //----------CEKSearcher-------------//
 
-bool CEKSearcher::CompareByLine(const TChoiceItem &a, const TChoiceItem &b)
+bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b)
 {
 
     return a.line < b.line;
@@ -96,7 +96,7 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
     BasicBlock *rootBB = NULL;
     for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
     {
-    	if(fit->getNameStr()=="main")
+    	if(fit->getName().str()=="main")
     	{
     		if(rootBB!=NULL)
     		{
@@ -238,8 +238,10 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
     {
         for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
         {
-        	InstructionInfo &instif = km->infos->getInfo(&*it);
-        	if(instif.line == line && instif.file == file)
+			
+        	unsigned lineno= km->infos->getInfo(&*it).line;
+			std::string filename = km->infos->getInfo(&*it).file;
+        	if(lineno == line && filename == file)
         	{
         		std::cerr << "find the target\n";
         		bb = &*it->getParent();
@@ -284,7 +286,6 @@ void CEKSearcher::BuildGraph()
     
     boost::property_map<Graph, boost::edge_weight_t>::type bbWeightmap = boost::get(boost::edge_weight, bbG);
     
-    llvm::Module *M = executor.kmodule->module;
 	for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
     {
         boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
@@ -395,11 +396,9 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 		if(brInst->isConditional())
 		{
 			Instruction *inst = dyn_cast<Instruction>(brInst);
-			InstructionInfo &instinfo = executor.kmodule->infos->getInfo(inst);
+			unsigned lineno = executor.kmodule->infos->getInfo(inst).line;
 			BasicBlock *trueBB = brInst->getSuccessor(0);
 			BasicBlock *falseBB = brInst->getSuccessor(1);
-
-			unsigned lineno = instinfo.line;
 
 			if(bbset.count(trueBB) && !bbset.count(falseBB))
 			{
