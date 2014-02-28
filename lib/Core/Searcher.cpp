@@ -236,10 +236,10 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
     {
         for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
         {
-			
         	unsigned lineno= km->infos->getInfo(&*it).line;
 			std::string filename = km->infos->getInfo(&*it).file;
-        	if(lineno == line && filename == file)
+        	std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
+			if(lineno == line && filename == file)
         	{
         		std::cerr << "find the target\n";
         		bb = &*it->getParent();
