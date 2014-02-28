@@ -119,7 +119,7 @@ namespace klee {
     	TChoiceItem(llvm::Instruction *_Inst, int _brChoice, unsigned _line):Inst(_Inst),brChoice(_brChoice),line(_line)
     	{}
     	llvm::Instruction *Inst;
-		int brChoice;
+			int brChoice;
     	unsigned line;
     };
 	
