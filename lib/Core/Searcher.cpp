@@ -159,6 +159,38 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
     std::cerr <<"Prepare done\n";
 }
 
+ExecutionState &CEKSearcher::selectState() {
+  return *states.back();
+}
+
+void CEKSearcher::update(ExecutionState *current,
+                         const std::set<ExecutionState*> &addedStates,
+                         const std::set<ExecutionState*> &removedStates) {
+  states.insert(states.end(),
+                addedStates.begin(),
+                addedStates.end());
+  for (std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
+         ie = removedStates.end(); it != ie; ++it) {
+    ExecutionState *es = *it;
+    if (es == states.back()) {
+      states.pop_back();
+    } else {
+      bool ok = false;
+
+      for (std::vector<ExecutionState*>::iterator it = states.begin(),
+             ie = states.end(); it != ie; ++it) {
+        if (es==*it) {
+          states.erase(it);
+          ok = true;
+          break;
+        }
+      }
+
+      assert(ok && "invalid state removed");
+    }
+  }
+}
+
 BasicBlock *CEKSearcher::getBB(boost::Vertex v)
 {
     for(std::map<BasicBlock *, boost::Vertex>::iterator it=bbMap.begin(); it!=bbMap.end(); ++it)
@@ -487,6 +519,8 @@ void CEKSearcher::getDefectList(std::string docname, defectList *res)
     
     fin.close();
 }
+
+
 
 /*
 //----------CESearcher--------------//
