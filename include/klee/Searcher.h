@@ -159,9 +159,21 @@ namespace klee {
     BasicBlock *getBB(Vertex v);
     void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target, Graph &graph);
 
+	std::string getBBName(Vertex v);
+	void PrintDotGraph();
     //bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b);
 
-    
+	struct my_bb_label_writer
+	{
+		CEKSearcher *CEP;
+		my_bb_label_writer(CEKSearcher *_CEP):CEP(_CEP){}
+		template<class VertexOrEdge>
+		void operator()(std::ostream &out, const VertexOrEdge &v) const
+		{
+			out << "[label=\"" << CEP->getBBName(v) << "\"]";
+		}
+	};
+	
   public:
     CEKSearcher(Executor &_executor, std::string cefile);
     ExecutionState &selectState();

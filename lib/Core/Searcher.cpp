@@ -322,6 +322,7 @@ void CEKSearcher::BuildGraph()
             }
         }
     }
+	PrintDotGraph();
 }
 
 void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList)
@@ -478,7 +479,38 @@ void CEKSearcher::getDefectList(std::string docname, defectList *res)
     fin.close();
 }
 
+std::string CEKSearcher::getBBName(Vertex v)
+{
+	std::string res = "<null>";
+	std::stringstream ss;
+	for(std::map<BasicBlock *, Vertex>::iterator it=bbMap.begin(); it!=bbMap.end(); ++it)
+	{
+		if(v == it->second)
+		{
+			BasicBlock *BB = it->first;
+			if(BB!=NULL)
+			{
+				Instruction *end_ins = dyn_cast<Instruction>(BB->getTerminator());
+				Instruction *begin_ins = BB->getFirstNonPHIOrDbg();
+				ss << executor.kmodule->infos->getInfo(begin_ins).line;
+				ss << "-" << executor.kmodule->infos->getInfo(end_ins);
+				res = ss.str();
+			}
+		}
+	}
+	return res;
+}
 
+
+
+#include <boost/graph/graphviz.hpp> //graphviz not compatitable with dijkstra
+//namespace llvm
+//{
+void CEKSearcher::PrintDotGraph()
+{      
+    std::ofstream bbs_file("blocks.dot");
+    boost::write_graphviz(bbs_file, bbG, my_bb_label_writer(this));
+}
 
 /*
 //----------CESearcher--------------//
