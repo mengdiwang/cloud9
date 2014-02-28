@@ -49,7 +49,7 @@
 #include <boost/graph/depth_first_search.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 
-using namespace boost;
+//using namespace boost;
 
 using namespace klee;
 using namespace llvm;
@@ -315,7 +315,7 @@ void CEKSearcher::BuildGraph()
         boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
         
 		Function *F = fit;
-		if(!F->empty())
+		//if(!F->empty())
 		{
 		    BasicBlock *BB = &F->getEntryBlock();
 			addBBEdges(BB);
