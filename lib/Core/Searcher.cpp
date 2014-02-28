@@ -75,6 +75,17 @@ bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b)
     return a.line < b.line;
 }
 
+std::string extractfilename(std::string path)
+{
+	std::string filename;
+	size_t pos = path.find_last_of("/");
+	if(pos != std::string::npos)
+		filename.assign(path.begin() + pos + 1, path.end());
+	else
+		filename = path;
+	return filename;
+}
+
 CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
 {
     llvm::Module *M = executor.kmodule->module;
@@ -120,15 +131,19 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
 		std::cerr << "size of list to find:" << lines.size() << "\n";
         for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
         {
-            std::cerr << "Looking for '" << file << "' (" << *lit << ")\n";
+            std::cerr << "Looking for '" << file << "'(" << *lit << ")\n";
             for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
             {
                 bb = FindTarget(file, *lit);
                 if(bb == NULL)
                 {
-                	std::cerr << "target:" << file << "' (" << *lit << ")Not find\n";
+                	std::cerr << "target:" << file << "'(" << *lit << ")Not find\n";
                     continue;
                 }
+				else
+				{
+					break;
+				}
             }
             
             if(bb == NULL || rootBB == NULL)
@@ -267,7 +282,6 @@ void CEKSearcher::addBBEdges(BasicBlock *BB)
         bbWeightmap[e] = 1;
     }
 }
-
 
 void CEKSearcher::BuildGraph()
 {
