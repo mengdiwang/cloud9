@@ -78,8 +78,7 @@ bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b)
 CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
 {
     llvm::Module *M = executor.kmodule->module;
-    klee::KModule *km = executor.kmodule;
-    
+    //klee::KModule *km = executor.kmodule;
     defectList dl;
     getDefectList(defectFile, &dl);
     if(dl.size() <= 0)
@@ -113,7 +112,6 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
     std::vector<BasicBlock *> bbpath;
     for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
     {
-
     	ceList.clear();
         std::string file = dit->first;
         lines = dit->second;
@@ -156,7 +154,7 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
         }
     }
 
-    std::cerr <<"Prepare done\n";
+    std::cerr <<"Preparation done\n";
 }
 
 ExecutionState &CEKSearcher::selectState() {
