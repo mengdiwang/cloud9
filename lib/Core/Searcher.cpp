@@ -325,7 +325,6 @@ void CEKSearcher::BuildGraph()
             std::cerr << "reach instruction " << it << "\n";
             if(it->getOpcode() == Instruction::Call || it->getOpcode() == Instruction::Invoke)
             {
-                Instruction *i = it;
 				std::cerr << "get caller instruction\n";
                 
                 CallSite cs(i);
