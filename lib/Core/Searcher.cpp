@@ -493,7 +493,8 @@ std::string CEKSearcher::getBBName(Vertex v)
 				Instruction *end_ins = dyn_cast<Instruction>(BB->getTerminator());
 				Instruction *begin_ins = BB->getFirstNonPHIOrDbg();
 				ss << executor.kmodule->infos->getInfo(begin_ins).line;
-				ss << "-" << executor.kmodule->infos->getInfo(end_ins);
+				ss << "-";
+				ss << executor.kmodule->infos->getInfo(end_ins);
 				res = ss.str();
 			}
 		}
