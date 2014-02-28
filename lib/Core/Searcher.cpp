@@ -261,13 +261,13 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
     {
         for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
         {
-        	unsigned lineno= km->infos->getInfo(&*it).line;
-			std::string filename = km->infos->getInfo(&*it).file;
+        	unsigned lineno= km->infos->getInfo(it).line;
+			std::string filename = km->infos->getInfo(it).file;
         	std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
 			if(lineno == line && filename == file)
         	{
         		std::cerr << "find the target\n";
-        		bb = &*it->getParent();
+        		bb = it->getParent();
         		return bb;
         	}
         }
@@ -323,8 +323,8 @@ void CEKSearcher::BuildGraph()
 		
         for(inst_iterator it = inst_begin(fit), ie = inst_end(fit); it!=ie; ++it)
         {
-            llvm::Instruction *i = &*it;
-            if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
+            std::cerr << "reach instruction " << it << "\n";
+            if(it->getOpcode() == Instruction::Call || it->getOpcode() == Instruction::Invoke)
             {
 				std::cerr << "get caller instruction\n";
                 
@@ -337,8 +337,7 @@ void CEKSearcher::BuildGraph()
                     continue;
             
                 BasicBlock *callerBB = i->getParent();
-                Function::iterator cBBit = &f->getEntryBlock();
-                BasicBlock *calleeBB = &*cBBit;
+                BasicBlock *calleeBB = &f->getEntryBlock();
                 if(calleeBB == NULL)
                     continue;
                 
