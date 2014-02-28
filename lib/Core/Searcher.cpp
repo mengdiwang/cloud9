@@ -494,7 +494,7 @@ std::string CEKSearcher::getBBName(Vertex v)
 				Instruction *begin_ins = BB->getFirstNonPHIOrDbg();
 				ss << executor.kmodule->infos->getInfo(begin_ins).line;
 				ss << "-";
-				ss << executor.kmodule->infos->getInfo(end_ins);
+				ss << executor.kmodule->infos->getInfo(end_ins).line;
 				res = ss.str();
 			}
 		}
