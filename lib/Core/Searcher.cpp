@@ -173,7 +173,7 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
 
 	for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
 	{
-		for(std::vector<TChoiceItem>::iterator tcit = tit->begin(); tcit!=tit.end(); ++tcit)
+		for(std::vector<TChoiceItem>::iterator tcit = tit->begin(); tcit!=tit->end(); ++tcit)
 		{
 			std::cerr << tcit->Inst << " at line:" << tcit->line << " with choice:" << tcit->brChoice << "\n";
 		}
