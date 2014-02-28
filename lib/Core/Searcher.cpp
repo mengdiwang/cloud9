@@ -324,6 +324,7 @@ void CEKSearcher::BuildGraph()
         for(inst_iterator it = inst_begin(fit), ie = inst_end(fit); it!=ie; ++it)
         {
             llvm::Instruction *i = &*it;
+			std::cerr << "reach inst:" <<executor.kmodule->infos->getInfo(i).line << "in file " << extractfilename(executor.kmodule->infos->getInfo(i).file) << "\n";
             if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
             {
 				std::cerr << "get caller instruction\n";
