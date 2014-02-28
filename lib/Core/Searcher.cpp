@@ -284,19 +284,26 @@ void CEKSearcher::BuildGraph()
         }
     }
     
-    boost::property_map<Graph, boost::edge_weight_t>::type bbWeightmap = boost::get(boost::edge_weight, bbG);
+	//property_map<Graph, edge_weight_t>::type funcWeightmap = get(edge_weight, funcG);
+    property_map<Graph, boost::edge_weight_t>::type bbWeightmap = boost::get(boost::edge_weight, bbG);
     
 	for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
     {
         boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
         
+		Function *F = fit;
+		if(!F->empty())
+		{
+		    BasicBlock *BB = &F->getEntryBlock();
+			addBBEdges(BB);
+		}
+		
         for(inst_iterator it = inst_begin(fit), ie = inst_end(fit); it!=ie; ++it)
         {
             llvm::Instruction *i = &*it;
             if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
             {
-                BasicBlock *BB = &((&*fit)->getEntryBlock());
-                addBBEdges(BB);
+				std::cerr << "get caller instruction\n";
                 
                 CallSite cs(i);
                 Function *f = cs.getCalledFunction();
@@ -307,7 +314,7 @@ void CEKSearcher::BuildGraph()
                     continue;
             
                 BasicBlock *callerBB = i->getParent();
-                Function::iterator cBBit = &(f->getEntryBlock());
+                Function::iterator cBBit = &f->getEntryBlock();
                 BasicBlock *calleeBB = &*cBBit;
                 if(calleeBB == NULL)
                     continue;
@@ -492,6 +499,8 @@ std::string CEKSearcher::getBBName(Vertex v)
 			{
 				Instruction *end_ins = dyn_cast<Instruction>(BB->getTerminator());
 				Instruction *begin_ins = BB->getFirstNonPHIOrDbg();
+				ss << executor.kmodule->infos->getInfo(begin_ins).file;
+				ss << " ";
 				ss << executor.kmodule->infos->getInfo(begin_ins).line;
 				ss << "-";
 				ss << executor.kmodule->infos->getInfo(end_ins).line;
