@@ -116,10 +116,11 @@ namespace klee {
   */
 	struct TChoiceItem
     {
-    	TChoiceItem(llvm::Instruction *_Inst, int _brChoice, unsigned _line):Inst(_Inst),brChoice(_brChoice),line(_line)
+    	TChoiceItem(llvm::Instruction *_Inst, llvm::Instruction* _chosenInst, int _brChoice, unsigned _line):Inst(_Inst), chosenInst(_chosenInst), brChoice(_brChoice),line(_line)
     	{}
     	llvm::Instruction *Inst;
-			int brChoice;
+    	llvm::Instruction *chosenInst;
+		int brChoice;
     	unsigned line;
     };
 	
@@ -128,6 +129,7 @@ namespace klee {
     typedef std::vector<TChoiceItem> TCList;
 
   private:
+    enum BrType {FALSE=0, TRUE=1};
     typedef std::map<std::string, std::vector<unsigned> > defectList;
     typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property,
     boost::property<boost::edge_weight_t, int> > Graph;
@@ -141,7 +143,9 @@ namespace klee {
     std::vector<TCList> cepaths;
     Executor &executor;
     int miss_ctr;
-    
+
+    void CEKSearcher::Init(std::string defectFile);
+
     std::vector<std::map<llvm::Instruction*, bool> > instMaps;
     std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
     std::set<BasicBlock *> isCallsite;
