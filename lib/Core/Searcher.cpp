@@ -209,6 +209,28 @@ void CEKSearcher::update(ExecutionState *current,
   states.insert(states.end(),
                 addedStates.begin(),
                 addedStates.end());
+  int count_ce = 0;
+  for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
+		  ie = addedStates.end(); it!=ie; ++it)
+  {
+	  bool reach = false;
+	  ExecutionState *es = *it;
+	  for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
+	  {
+		  for(std::vector<TChoiceItem>::iterator tcit=tit->begin(); tcit!=tit->end(); ++tcit)
+		  {
+			  if(tcit->chosenInst == es->pc()->inst)
+			  {
+				  reach = true;
+				  break;
+			  }
+		  }
+	  }
+	  if(reach)
+		  count_ce++;
+  }
+  std::cerr << "reach ce states " << count_ce << "/" << addedStates.size() << "\n";
+
   for (std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
          ie = removedStates.end(); it != ie; ++it) {
     ExecutionState *es = *it;
