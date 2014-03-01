@@ -230,6 +230,7 @@ void CEKSearcher::update(ExecutionState *current,
 		  count_ce++;
   }
   std::cerr << "reach ce states " << count_ce << "/" << addedStates.size() << "\n";
+  //TODO wmd reach at states with critical edge
 
   for (std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
          ie = removedStates.end(); it != ie; ++it) {
