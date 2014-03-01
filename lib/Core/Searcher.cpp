@@ -86,7 +86,7 @@ std::string extractfilename(std::string path)
 	return filename;
 }
 
-CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
+void CEKSearcher::Init(std::string defectFile)
 {
     llvm::Module *M = executor.kmodule->module;
     //klee::KModule *km = executor.kmodule;
@@ -186,11 +186,17 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
 	{
 		for(std::vector<TChoiceItem>::iterator tcit = tit->begin(); tcit!=tit->end(); ++tcit)
 		{
-			std::cerr << tcit->Inst << " at line:" << tcit->line << " with choice:" << tcit->brChoice << "\n";
+			std::cerr << tcit->Inst << " at line:" << tcit->line << " with choice:" << tcit->brChoice << " to inst at line:" <<
+					executor.kmodule->infos->getInfo(tcit->chosenInst).line <<  "\n";
 		}
 	}
 	
     std::cerr <<"Preparation done\n";
+}
+
+CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
+{
+	Init(defectFile);
 }
 
 ExecutionState &CEKSearcher::selectState() {
@@ -442,10 +448,9 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 			unsigned lineno = executor.kmodule->infos->getInfo(inst).line;
 			BasicBlock *trueBB = brInst->getSuccessor(0);
 			BasicBlock *falseBB = brInst->getSuccessor(1);
-
 			if(bbset.count(trueBB) && !bbset.count(falseBB))
 			{
-				TChoiceItem cItem = TChoiceItem(inst, 0, lineno);
+				TChoiceItem cItem = TChoiceItem(inst, trueBB->getFirstNonPHIOrDbg(), (int)CEKSearcher::TRUE, lineno);//1:true
 				ceList.push_back(cItem);
 
 				if(!seqset.count(trueBB))
@@ -456,7 +461,7 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 			}
 			else if(!bbset.count(trueBB) &&bbset.count(falseBB))
 			{
-				TChoiceItem cItem = TChoiceItem(inst, 1, lineno);
+				TChoiceItem cItem = TChoiceItem(inst, falseBB->getFirstNonPHIOrDbg(), (int)CEKSearcher::FALSE, lineno);//0:false
 				ceList.push_back(cItem);
 
 				if(!seqset.count(falseBB))
