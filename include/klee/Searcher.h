@@ -144,7 +144,7 @@ namespace klee {
     Executor &executor;
     int miss_ctr;
 
-    void CEKSearcher::Init(std::string defectFile);
+    void Init(std::string defectFile);
 
     std::vector<std::map<llvm::Instruction*, bool> > instMaps;
     std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
