@@ -684,7 +684,7 @@ void Executor::run(ExecutionState &initialState) {
 
   std::cerr << "while loop\n";
   while (!states.empty() && !haltExecution) {
-	  std::cerr << "select state\n";
+	  //std::cerr << "select state\n";
 	  ExecutionState &state = searcher->selectState();
 
     stepInState(&state);
