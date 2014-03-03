@@ -210,12 +210,24 @@ void CEKSearcher::update(ExecutionState *current,
                 addedStates.begin(),
                 addedStates.end());
 	int count_ce = 0;
+	int past_count = 0;
 	for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
 	{
 		for(std::vector<TChoiceItem>::iterator tcit=tit->begin(); tcit!=tit->end(); ++tcit)
 		{
 			if(current && tcit->chosenInst == current->pc()->inst)
+			{
 				std::cerr << "[Current state reach es]\n";
+			}
+			if(current && tcit->Inst == current->pc()->inst)
+			{
+				std::cerr << "[Critical Branch reach]\n";
+			}
+			for(ExecutionState::stack_ty::iterator sfit=current->stack().rbegin(); sfit!=current->stack().rend(); ++sfit)
+			{
+				sfit->caller;
+
+			}
 		}
 	}
 
