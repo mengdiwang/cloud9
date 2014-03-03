@@ -210,7 +210,7 @@ ExecutionState &CEKSearcher::selectState() {
 	{
 		if(n->data->pc()->inst==tcit->Inst)
 		{
-			if(tcit->brChoice == (int)BrType::FALSE)
+			if(tcit->brChoice == (int)CEKSearcher::FALSE)
 			{
 				if(!n->left)
 				{
@@ -226,7 +226,7 @@ ExecutionState &CEKSearcher::selectState() {
 					std::cerr <<"Unable to flip at line "<<n->data->pc()->info->line << "\n";
 				}
 			}
-			else if(tcit->brChoice == (int)BrType::TRUE)
+			else if(tcit->brChoice == (int)CEKSearcher::TRUE)
 			{
 				if(!n->right)
 				{
