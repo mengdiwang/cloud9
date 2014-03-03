@@ -209,7 +209,16 @@ void CEKSearcher::update(ExecutionState *current,
   states.insert(states.end(),
                 addedStates.begin(),
                 addedStates.end());
-  int count_ce = 0;
+	int count_ce = 0;
+	for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
+	{
+		for(std::vector<TChoiceItem>::iterator tcit=tit->begin(); tcit!=tit->end(); ++tcit)
+		{
+			if(current && tcit->chosenInst == current->pc()->inst)
+				std::cerr << "[Current state reach es]\n";
+		}
+	}
+
   for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
 		  ie = addedStates.end(); it!=ie; ++it)
   {
@@ -229,9 +238,12 @@ void CEKSearcher::update(ExecutionState *current,
 	  if(reach)
 		  count_ce++;
   }
-
-  std::cerr << "add " << addedStates.size() << " states, remove " << removedStates.size() <<" states\n";
-  std::cerr << "reach " << count_ce << " ce_states\n";
+	
+	if(addedStates.size()>0 || removedStates.size()>0)
+	{
+	  std::cerr << "add " << addedStates.size() << " states, remove " << removedStates.size() <<" states\n";
+	  std::cerr << "reach " << count_ce << " ce_states\n";
+	}
   //TODO wmd reach at states with critical edge
 
   for (std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
@@ -470,7 +482,7 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 		if(brInst->isConditional())
 		{
 			Instruction *inst = dyn_cast<Instruction>(brInst);
-			unsigned lineno = executor.kmodule->infos->getInfo(inst).line;
+			//unsigned lineno = executor.kmodule->infos->getInfo(inst).line;
 			BasicBlock *trueBB = brInst->getSuccessor(0);
 			BasicBlock *falseBB = brInst->getSuccessor(1);
 			if(bbset.count(trueBB) && !bbset.count(falseBB))
