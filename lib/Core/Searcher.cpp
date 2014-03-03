@@ -474,7 +474,7 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 			if(bbset.count(trueBB) && !bbset.count(falseBB))
 			{
 				TChoiceItem cItem = TChoiceItem(inst, trueBB->getFirstNonPHIOrDbg(),
-						(int)CEKSearcher::TRUE, executor.kmodule->infos->getInfo(inst));//1:true
+						(int)CEKSearcher::TRUE, &executor.kmodule->infos->getInfo(inst));//1:true
 				ceList.push_back(cItem);
 
 				if(!seqset.count(trueBB))
@@ -486,7 +486,7 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 			else if(!bbset.count(trueBB) &&bbset.count(falseBB))
 			{
 				TChoiceItem cItem = TChoiceItem(inst, falseBB->getFirstNonPHIOrDbg(),
-						(int)CEKSearcher::FALSE, executor.kmodule->infos->getInfo(inst));//0:false
+						(int)CEKSearcher::FALSE, &executor.kmodule->infos->getInfo(inst));//0:false
 				ceList.push_back(cItem);
 
 				if(!seqset.count(falseBB))
