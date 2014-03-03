@@ -613,7 +613,7 @@ void Executor::stepInState(ExecutionState *state) {
 
   VLOG(5) << "Executing instruction: " << state->pc()->info->assemblyLine
       << " through state " << state << " Src: " << state->pc()->info->file
-      << " Line: " << state->pc()->info->line;
+      << " Line: " << state->pc()->info->line << "\n";
 
   std::cerr << "Executing instruction: " << state->pc()->info->assemblyLine
        << " through state " << state << " Src: " << state->pc()->info->file
