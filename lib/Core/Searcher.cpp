@@ -207,7 +207,7 @@ ExecutionState &CEKSearcher::selectState() {
 	int cereach = 0;
 	bool cecanuse = true;
 	while(!n->data)
-	{
+	{/*
 		if(cecanuse && n->data->pc()->inst==tcit->Inst)
 		{
 			if(tcit->brChoice == (int)CEKSearcher::FALSE)
@@ -241,23 +241,57 @@ ExecutionState &CEKSearcher::selectState() {
 				}
 			}
 		}
-		else if(!n->left)
+		else */
+		if(!n->left)
 		{
 			n = n->right;
+			if(n->data && tcit->chosenInst == n->data->pc()->inst && tcit->brChoice == (int)CEKSearcher::FALSE)
+			{
+				++ tcit;// move to the next cepath guide
+				if(tcit == tend)
+					cecanuse = false;
+				cereach ++;
+			}
 		}
 		else if(!n->right)
 		{
 			n = n->left;
+			if(n->data && tcit->chosenInst == n->data->pc()->inst && tcit->brChoice == (int)CEKSearcher::TRUE)
+			{
+				++ tcit;// move to the next cepath guide
+				if(tcit == tend)
+					cecanuse = false;
+				cereach ++;
+			}
 		}
 		else
 		{
-			if(bits == 0)
+			if(n->data && tcit->chosenInst == n->data->pc()->inst && tcit->brChoice == (int)CEKSearcher::FALSE)
 			{
-				flips = theRNG.getInt32();
-				bits = 32;
+				n = n->left;
+				++ tcit;// move to the next cepath guide
+				if(tcit == tend)
+					cecanuse = false;
+				cereach ++;
 			}
-			bits --;
-			n = (flips & (1<<bits)) ? n->left : n->right;
+			else if(n->data && tcit->chosenInst == n->data->pc()->inst && tcit->brChoice == (int)CEKSearcher::TRUE)
+			{
+				n = n->right;
+				++ tcit;// move to the next cepath guide
+				if(tcit == tend)
+					cecanuse = false;
+				cereach ++;
+			}
+			else
+			{
+				if(bits == 0)
+				{
+					flips = theRNG.getInt32();
+					bits = 32;
+				}
+				bits --;
+				n = (flips & (1<<bits)) ? n->left : n->right;
+			}
 		}
 	}
 
