@@ -200,7 +200,72 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
 }
 
 ExecutionState &CEKSearcher::selectState() {
-  return *states.back();
+	unsigned flips = 0, bits = 0;
+	PTree::Node *n = executor.processTree->root;
+	std::vector<TChoiceItem>::iterator tend = cepaths.begin()->end();
+	std::vector<TChoiceItem>::iterator tcit = cepaths.begin()->begin();
+	int guidechoice = 0;
+	int cereach = 0;
+	while(!n->data)
+	{
+		if(n->data->pc()->inst==tcit->Inst)
+		{
+			if(tcit->brChoice == (int)BrType::FALSE)
+			{
+				if(!n->left)
+				{
+					n = n->left;
+					if(tcit != tend)
+					{
+						++ tcit;// move to the next cepath guide
+						cereach ++;
+					}
+				}
+				else
+				{
+					std::cerr <<"Unable to flip at line "<<n->data->pc()->info->line << "\n";
+				}
+			}
+			else if(tcit->brChoice == (int)BrType::TRUE)
+			{
+				if(!n->right)
+				{
+					n = n->right;
+					if(tcit != tend)
+					{
+						++ tcit;
+						cereach++;
+					}
+				}
+				else
+				{
+					std::cerr <<"Unable to flip at line "<<n->data->pc()->info->line << "\n";
+				}
+			}
+		}
+		else if(!n->left)
+		{
+			n = n->right;
+		}
+		else if(!n->right)
+		{
+			n = n->left;
+		}
+		else
+		{
+			if(bits == 0)
+			{
+				flips = theRNG.getInt32();
+				bits = 32;
+			}
+			bits --;
+			n = (flips & (1<<bits)) ? n->left : n->right;
+		}
+	}
+
+	std::cerr << "encounter " << cereach << " edges\n";
+	return *n->data;
+  //return *states.back();
 }
 
 void CEKSearcher::update(ExecutionState *current,
