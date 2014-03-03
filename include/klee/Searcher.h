@@ -116,12 +116,13 @@ namespace klee {
   */
 	struct TChoiceItem
     {
-    	TChoiceItem(llvm::Instruction *_Inst, llvm::Instruction* _chosenInst, int _brChoice, unsigned _line):Inst(_Inst), chosenInst(_chosenInst), brChoice(_brChoice),line(_line)
+    	TChoiceItem(llvm::Instruction *_Inst, llvm::Instruction* _chosenInst, int _brChoice, InstructionInfo *_brinfo):Inst(_Inst), chosenInst(_chosenInst), brChoice(_brChoice),brinfo(_brinfo)
     	{}
     	llvm::Instruction *Inst;
     	llvm::Instruction *chosenInst;
 		int brChoice;
-    	unsigned line;
+    	//unsigned line;
+    	const InstructionInfo *brinfo;
     };
 	
   class CEKSearcher : public Searcher{
