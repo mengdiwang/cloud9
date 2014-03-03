@@ -204,7 +204,6 @@ ExecutionState &CEKSearcher::selectState() {
 	PTree::Node *n = executor.processTree->root;
 	std::vector<TChoiceItem>::iterator tend = cepaths.begin()->end();
 	std::vector<TChoiceItem>::iterator tcit = cepaths.begin()->begin();
-	int guidechoice = 0;
 	int cereach = 0;
 	while(!n->data)
 	{
@@ -287,11 +286,6 @@ void CEKSearcher::update(ExecutionState *current,
 			if(current && tcit->Inst == current->pc()->inst)
 			{
 				std::cerr << "[Critical Branch reach]\n";
-			}
-			for(ExecutionState::stack_ty::iterator sfit=current->stack().rbegin(); sfit!=current->stack().rend(); ++sfit)
-			{
-				sfit->caller;
-
 			}
 		}
 	}
