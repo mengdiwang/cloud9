@@ -244,38 +244,47 @@ ExecutionState &CEKSearcher::selectState() {
 		else */
 		if(!n->left)
 		{
+			std::cerr << "right ";
 			n = n->right;
-			if(n->data && tcit->chosenInst == n->data->pc()->inst && tcit->brChoice == (int)CEKSearcher::FALSE)
+			if(n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
+				std::cerr << " in ce";
 				++ tcit;// move to the next cepath guide
 				if(tcit == tend)
 					cecanuse = false;
 				cereach ++;
 			}
+			std::cerr << "\n";
 		}
 		else if(!n->right)
 		{
+			std::cerr << "left ";
 			n = n->left;
-			if(n->data && tcit->chosenInst == n->data->pc()->inst && tcit->brChoice == (int)CEKSearcher::TRUE)
+			if(n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
+				std::cerr << " in ce";
 				++ tcit;// move to the next cepath guide
 				if(tcit == tend)
 					cecanuse = false;
 				cereach ++;
 			}
+			std::cerr << "\n";
 		}
 		else
 		{
-			if(n->data && tcit->chosenInst == n->data->pc()->inst && tcit->brChoice == (int)CEKSearcher::FALSE)
+			std::cerr << "all";
+			if(n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
+				std::cerr << " in ce";
 				n = n->left;
 				++ tcit;// move to the next cepath guide
 				if(tcit == tend)
 					cecanuse = false;
 				cereach ++;
 			}
-			else if(n->data && tcit->chosenInst == n->data->pc()->inst && tcit->brChoice == (int)CEKSearcher::TRUE)
+			else if(n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
+				std::cerr << " in ce";
 				n = n->right;
 				++ tcit;// move to the next cepath guide
 				if(tcit == tend)
@@ -284,6 +293,7 @@ ExecutionState &CEKSearcher::selectState() {
 			}
 			else
 			{
+				std::cerr << " random";
 				if(bits == 0)
 				{
 					flips = theRNG.getInt32();
@@ -292,6 +302,7 @@ ExecutionState &CEKSearcher::selectState() {
 				bits --;
 				n = (flips & (1<<bits)) ? n->left : n->right;
 			}
+			std::cerr << "\n";
 		}
 	}
 
