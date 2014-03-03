@@ -207,17 +207,14 @@ ExecutionState &CEKSearcher::selectState() {
 	int cereach = 0;
 	while(!n->data)
 	{
-		if(tcit && n->data->pc()->inst==tcit->Inst)
+		if(tcit != tend && n->data->pc()->inst==tcit->Inst)
 		{
 			if(tcit->brChoice == (int)CEKSearcher::FALSE)
 			{
 				if(n->left)
 				{
 					n = n->left;
-					if(tcit != tend)
-						++ tcit;// move to the next cepath guide
-					else
-						tcit = NULL;
+					++ tcit;// move to the next cepath guide
 					cereach ++;
 				}
 				else
@@ -230,10 +227,7 @@ ExecutionState &CEKSearcher::selectState() {
 				if(n->right)
 				{
 					n = n->right;
-					if(tcit != tend)
-						++ tcit;
-					else
-						tcit = NULL;
+					++ tcit;
 					cereach++;
 				}
 				else
