@@ -116,7 +116,8 @@ namespace klee {
   */
 	struct TChoiceItem
     {
-    	TChoiceItem(llvm::Instruction *_Inst, llvm::Instruction* _chosenInst, int _brChoice, InstructionInfo *_brinfo):Inst(_Inst), chosenInst(_chosenInst), brChoice(_brChoice),brinfo(_brinfo)
+    	TChoiceItem(llvm::Instruction *_Inst, llvm::Instruction* _chosenInst, int _brChoice, const InstructionInfo *_brinfo)
+    	:Inst(_Inst), chosenInst(_chosenInst), brChoice(_brChoice),brinfo(_brinfo)
     	{}
     	llvm::Instruction *Inst;
     	llvm::Instruction *chosenInst;
