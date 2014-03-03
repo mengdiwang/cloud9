@@ -205,9 +205,10 @@ ExecutionState &CEKSearcher::selectState() {
 	std::vector<TChoiceItem>::iterator tend = cepaths.begin()->end();
 	std::vector<TChoiceItem>::iterator tcit = cepaths.begin()->begin();
 	int cereach = 0;
+	bool cecanuse = true;
 	while(!n->data)
 	{
-		if(tcit != tend && n->data->pc()->inst==tcit->Inst)
+		if(cecanuse && n->data->pc()->inst==tcit->Inst)
 		{
 			if(tcit->brChoice == (int)CEKSearcher::FALSE)
 			{
@@ -215,6 +216,8 @@ ExecutionState &CEKSearcher::selectState() {
 				{
 					n = n->left;
 					++ tcit;// move to the next cepath guide
+					if(tcit == tend)
+						cecanuse = false;
 					cereach ++;
 				}
 				else
@@ -228,6 +231,8 @@ ExecutionState &CEKSearcher::selectState() {
 				{
 					n = n->right;
 					++ tcit;
+					if(tcit == tend)
+						cecanuse = false;
 					cereach++;
 				}
 				else
@@ -256,7 +261,7 @@ ExecutionState &CEKSearcher::selectState() {
 		}
 	}
 
-	std::cerr << "encounter " << cereach << " edges\n";
+	std::cerr << "{Encounter " << cereach << " edges}\n";
 	return *n->data;
   //return *states.back();
 }
