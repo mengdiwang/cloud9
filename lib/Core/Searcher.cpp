@@ -207,18 +207,18 @@ ExecutionState &CEKSearcher::selectState() {
 	int cereach = 0;
 	while(!n->data)
 	{
-		if(n->data->pc()->inst==tcit->Inst)
+		if(tcit && n->data->pc()->inst==tcit->Inst)
 		{
 			if(tcit->brChoice == (int)CEKSearcher::FALSE)
 			{
-				if(!n->left)
+				if(n->left)
 				{
 					n = n->left;
 					if(tcit != tend)
-					{
 						++ tcit;// move to the next cepath guide
-						cereach ++;
-					}
+					else
+						tcit = NULL;
+					cereach ++;
 				}
 				else
 				{
@@ -227,14 +227,14 @@ ExecutionState &CEKSearcher::selectState() {
 			}
 			else if(tcit->brChoice == (int)CEKSearcher::TRUE)
 			{
-				if(!n->right)
+				if(n->right)
 				{
 					n = n->right;
 					if(tcit != tend)
-					{
 						++ tcit;
-						cereach++;
-					}
+					else
+						tcit = NULL;
+					cereach++;
 				}
 				else
 				{
@@ -274,7 +274,6 @@ void CEKSearcher::update(ExecutionState *current,
                 addedStates.begin(),
                 addedStates.end());
 	int count_ce = 0;
-	int past_count = 0;
 	for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
 	{
 		for(std::vector<TChoiceItem>::iterator tcit=tit->begin(); tcit!=tit->end(); ++tcit)
