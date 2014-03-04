@@ -140,6 +140,7 @@ namespace klee {
     typedef boost::color_traits<boost::default_color_type> Color;
     typedef std::vector<boost::default_color_type> ColorVec;
 
+    llvm::Instruction *GoalInst;
     std::vector<ExecutionState*> states;
     //std::vector<TCList> cepaths;
     TCList cepaths;
