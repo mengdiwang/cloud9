@@ -228,6 +228,7 @@ ExecutionState &CEKSearcher::selectState() {
 
 	while(!n->data)
 	{
+passedSet.insert(n);
 		if(!n->left)
 		{
 			std::cerr << "Only right ";
@@ -309,11 +310,13 @@ ExecutionState &CEKSearcher::selectState() {
 				}
 			}
 			std::cerr << "\n";
+			std::cerr << std::flush;
 		}
 	}
 
 	if(cereach>0)
 		std::cerr << "{Encounter " << cereach << " edges}\n";
+	std::cerr << "Passed " << passedSet.size() << " Node in all\n";
 	return *n->data;
   //return *states.back();
 }

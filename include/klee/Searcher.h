@@ -145,6 +145,7 @@ namespace klee {
     llvm::Instruction *GoalInst;
     std::vector<ExecutionState*> states;
     std::set<PTreeNode*> forbitSet;
+		std::set<PTreeNode*> passedSet;
     //std::vector<TCList> cepaths;
     TCList cepaths;
     Executor &executor;
