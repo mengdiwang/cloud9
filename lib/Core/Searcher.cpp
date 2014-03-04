@@ -441,7 +441,7 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
     klee::KModule *km = executor.kmodule;
     BasicBlock *bb = NULL;
 
-    int linenolow = 0;
+    unsigned linenolow = 0;
     for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
     {
     	//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
