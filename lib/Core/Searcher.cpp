@@ -443,7 +443,10 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
 
     for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
     {
-        for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
+    	for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
+
+    	for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
+        //for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
         {
         	unsigned lineno= km->infos->getInfo(&*it).line;
 			std::string filename = km->infos->getInfo(&*it).file;
