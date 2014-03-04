@@ -92,6 +92,7 @@ void CEKSearcher::Init(std::string defectFile)
     //klee::KModule *km = executor.kmodule;
     cepaths.clear();
     ceStateMap.clear();
+    GoalInst = NULL;
     defectList dl;
     getDefectList(defectFile, &dl);
     if(dl.size() <= 0)
@@ -301,6 +302,13 @@ ExecutionState &CEKSearcher::selectState() {
 void CEKSearcher::update(ExecutionState *current,
                          const std::set<ExecutionState*> &addedStates,
                          const std::set<ExecutionState*> &removedStates) {
+
+	if(current->pc()->inst == GoalInst)
+	{
+		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
+		//executor.setHaltExecution(true);
+
+	}
   states.insert(states.end(),
                 addedStates.begin(),
                 addedStates.end());
@@ -341,12 +349,13 @@ void CEKSearcher::update(ExecutionState *current,
 	  if(reach)
 		  count_ce++;
   }
-	
+	/*
 	if(addedStates.size()>0 || removedStates.size()>0)
 	{
 	  std::cerr << "add " << addedStates.size() << " states, remove " << removedStates.size() <<" states\n";
 	  std::cerr << "reach " << count_ce << " ce_states\n";
 	}
+	*/
   //TODO wmd reach at states with critical edge
 
   for (std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
@@ -424,6 +433,7 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
         	{
         		std::cerr << "find the target\n";
         		bb = &*it->getParent();
+        		GoalInst = bb;
         		return bb;
         	}
         }
