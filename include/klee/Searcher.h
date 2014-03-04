@@ -140,11 +140,12 @@ namespace klee {
     typedef boost::color_traits<boost::default_color_type> Color;
     typedef std::vector<boost::default_color_type> ColorVec;
 
-      
     std::vector<ExecutionState*> states;
-    std::vector<TCList> cepaths;
+    //std::vector<TCList> cepaths;
+    TCList cepaths;
     Executor &executor;
     int miss_ctr;
+    std::map<TChoiceItem*, bool> ceStateMap;
 
     void Init(std::string defectFile);
 
