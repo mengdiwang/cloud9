@@ -90,6 +90,8 @@ void CEKSearcher::Init(std::string defectFile)
 {
     llvm::Module *M = executor.kmodule->module;
     //klee::KModule *km = executor.kmodule;
+    cepaths.clear();
+    ceStateMap.clear();
     defectList dl;
     getDefectList(defectFile, &dl);
     if(dl.size() <= 0)
@@ -177,15 +179,19 @@ void CEKSearcher::Init(std::string defectFile)
             }
 
             GetBBPathList(bbpath, bb, ceList);
-            cepaths.push_back(ceList);
+            //cepaths.push_back(ceList);
+            cepaths.insert(cepaths.end(), ceList.begin(), ceList.end());
+
             bb = NULL;	
         }
     }
 
-	for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
+	//for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
+    for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
 	{
-		for(std::vector<TChoiceItem>::iterator tcit = tit->begin(); tcit!=tit->end(); ++tcit)
+		//for(std::vector<TChoiceItem>::iterator tcit = tit->begin(); tcit!=tit->end(); ++tcit)
 		{
+			ceStateMap.insert(std::make_pair(tcit, false));
 			std::cerr << tcit->Inst << " at line:" << tcit->brinfo->line << " asline:" << tcit->brinfo->assemblyLine
 					<< " with choice:" << tcit->brChoice << " to asline at "
 					<< executor.kmodule->infos->getInfo(tcit->chosenInst).assemblyLine
@@ -205,46 +211,21 @@ CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_
 ExecutionState &CEKSearcher::selectState() {
 	unsigned flips = 0, bits = 0;
 	PTree::Node *n = executor.processTree->root;
-	std::vector<TChoiceItem>::iterator tend = cepaths.begin()->end();
-	std::vector<TChoiceItem>::iterator tcit = cepaths.begin()->begin();
+	std::vector<TChoiceItem>::iterator tend = cepaths.end();
+	std::vector<TChoiceItem>::iterator tcit = cepaths.begin();
+	for(; tcit!=tend; tcit++)
+	{
+		TChoiceItem *ic = tcit;
+		if(!ceStateMap[ic])
+			break;
+	}
 	int cereach = 0;
 	bool cecanuse = true;
+	if(tcit == tend)
+		cecanuse = false;
+
 	while(!n->data)
-	{/*
-		if(cecanuse && n->data->pc()->inst==tcit->Inst)
-		{
-			if(tcit->brChoice == (int)CEKSearcher::FALSE)
-			{
-				if(n->left)
-				{
-					n = n->left;
-					++ tcit;// move to the next cepath guide
-					if(tcit == tend)
-						cecanuse = false;
-					cereach ++;
-				}
-				else
-				{
-					std::cerr <<"Unable to flip at line "<<n->data->pc()->info->line << "\n";
-				}
-			}
-			else if(tcit->brChoice == (int)CEKSearcher::TRUE)
-			{
-				if(n->right)
-				{
-					n = n->right;
-					++ tcit;
-					if(tcit == tend)
-						cecanuse = false;
-					cereach++;
-				}
-				else
-				{
-					std::cerr <<"Unable to flip at line "<<n->data->pc()->info->line << "\n";
-				}
-			}
-		}
-		else */
+	{
 		if(!n->left)
 		{
 			std::cerr << "right ";
@@ -252,9 +233,8 @@ ExecutionState &CEKSearcher::selectState() {
 			if(n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
 				std::cerr << " in ce";
-				++ tcit;// move to the next cepath guide
-				if(tcit == tend)
-					cecanuse = false;
+				TChoiceItem *ci = tcit;
+				ceStateMap[ci] = true;
 				cereach ++;
 			}
 			std::cerr << "\n";
@@ -263,12 +243,12 @@ ExecutionState &CEKSearcher::selectState() {
 		{
 			std::cerr << "left ";
 			n = n->left;
-			if(n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::FALSE))
+			if(n->data && (tcit->chosenInst == n->data->pc()->inst)
+					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
 				std::cerr << " in ce";
-				++ tcit;// move to the next cepath guide
-				if(tcit == tend)
-					cecanuse = false;
+				TChoiceItem *ci = tcit;
+				ceStateMap[ci] = true;
 				cereach ++;
 			}
 			std::cerr << "\n";
@@ -279,11 +259,11 @@ ExecutionState &CEKSearcher::selectState() {
 			if(n->left->data && (tcit->chosenInst == n->left->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
+				//got and will exit the loop
 				std::cerr << " in ce";
 				n = n->left;
-				++ tcit;// move to the next cepath guide
-				if(tcit == tend)
-					cecanuse = false;
+				TChoiceItem *ci = tcit;
+				ceStateMap[ci] = true;
 				cereach ++;
 			}
 			else if(n->right->data && (tcit->chosenInst == n->right->data->pc()->inst)
@@ -291,9 +271,8 @@ ExecutionState &CEKSearcher::selectState() {
 			{
 				std::cerr << " in ce";
 				n = n->right;
-				++ tcit;// move to the next cepath guide
-				if(tcit == tend)
-					cecanuse = false;
+				TChoiceItem *ci = tcit;
+				ceStateMap[ci] = true;
 				cereach ++;
 			}
 			else
@@ -323,9 +302,10 @@ void CEKSearcher::update(ExecutionState *current,
                 addedStates.begin(),
                 addedStates.end());
 	int count_ce = 0;
-	for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
+	//for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
+	for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
 	{
-		for(std::vector<TChoiceItem>::iterator tcit=tit->begin(); tcit!=tit->end(); ++tcit)
+		//for(std::vector<TChoiceItem>::iterator tcit=tit->begin(); tcit!=tit->end(); ++tcit)
 		{
 			if(current && tcit->chosenInst == current->pc()->inst)
 			{
@@ -343,9 +323,10 @@ void CEKSearcher::update(ExecutionState *current,
   {
 	  bool reach = false;
 	  ExecutionState *es = *it;
-	  for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
+	  //for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
+	  for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
 	  {
-		  for(std::vector<TChoiceItem>::iterator tcit=tit->begin(); tcit!=tit->end(); ++tcit)
+		  //for(std::vector<TChoiceItem>::iterator tcit=tit->begin(); tcit!=tit->end(); ++tcit)
 		  {
 			  if(tcit->chosenInst == es->pc()->inst)
 			  {
