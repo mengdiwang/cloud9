@@ -186,8 +186,11 @@ void CEKSearcher::Init(std::string defectFile)
 	{
 		for(std::vector<TChoiceItem>::iterator tcit = tit->begin(); tcit!=tit->end(); ++tcit)
 		{
-			std::cerr << tcit->Inst << " at line:" << tcit->brinfo->line << " asline:" << tcit->brinfo->assemblyLine << " with choice:" << tcit->brChoice << " to inst at line:" <<
-					executor.kmodule->infos->getInfo(tcit->chosenInst).line <<  "\n";
+			std::cerr << tcit->Inst << " at line:" << tcit->brinfo->line << " asline:" << tcit->brinfo->assemblyLine
+					<< " with choice:" << tcit->brChoice << " to asline at "
+					<< executor.kmodule->infos->getInfo(tcit->chosenInst).assemblyLine
+					<< " to inst at line:"
+					<< executor.kmodule->infos->getInfo(tcit->chosenInst).line <<  "\n";
 		}
 	}
 	
@@ -273,7 +276,8 @@ ExecutionState &CEKSearcher::selectState() {
 		else
 		{
 			std::cerr << "all";
-			if(n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::FALSE))
+			if(n->left->data && (tcit->chosenInst == n->left->data->pc()->inst)
+					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
 				std::cerr << " in ce";
 				n = n->left;
@@ -282,7 +286,8 @@ ExecutionState &CEKSearcher::selectState() {
 					cecanuse = false;
 				cereach ++;
 			}
-			else if(n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::TRUE))
+			else if(n->right->data && (tcit->chosenInst == n->right->data->pc()->inst)
+					&& (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
 				std::cerr << " in ce";
 				n = n->right;
