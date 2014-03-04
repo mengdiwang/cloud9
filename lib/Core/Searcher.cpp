@@ -191,7 +191,7 @@ void CEKSearcher::Init(std::string defectFile)
 	{
 		//for(std::vector<TChoiceItem>::iterator tcit = tit->begin(); tcit!=tit->end(); ++tcit)
 		{
-			ceStateMap.insert(std::make_pair(tcit, false));
+			ceStateMap.insert(std::make_pair(&*tcit, false));
 			std::cerr << tcit->Inst << " at line:" << tcit->brinfo->line << " asline:" << tcit->brinfo->assemblyLine
 					<< " with choice:" << tcit->brChoice << " to asline at "
 					<< executor.kmodule->infos->getInfo(tcit->chosenInst).assemblyLine
@@ -215,7 +215,7 @@ ExecutionState &CEKSearcher::selectState() {
 	std::vector<TChoiceItem>::iterator tcit = cepaths.begin();
 	for(; tcit!=tend; tcit++)
 	{
-		TChoiceItem *ic = tcit;
+		TChoiceItem *ic = &*tcit;
 		if(!ceStateMap[ic])
 			break;
 	}
@@ -233,7 +233,7 @@ ExecutionState &CEKSearcher::selectState() {
 			if(n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
 				std::cerr << " in ce";
-				TChoiceItem *ci = tcit;
+				TChoiceItem *ci = &*tcit;
 				ceStateMap[ci] = true;
 				cereach ++;
 			}
@@ -247,7 +247,7 @@ ExecutionState &CEKSearcher::selectState() {
 					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
 				std::cerr << " in ce";
-				TChoiceItem *ci = tcit;
+				TChoiceItem *ci = &*tcit;
 				ceStateMap[ci] = true;
 				cereach ++;
 			}
@@ -262,7 +262,7 @@ ExecutionState &CEKSearcher::selectState() {
 				//got and will exit the loop
 				std::cerr << " in ce";
 				n = n->left;
-				TChoiceItem *ci = tcit;
+				TChoiceItem *ci = &*tcit;
 				ceStateMap[ci] = true;
 				cereach ++;
 			}
@@ -271,7 +271,7 @@ ExecutionState &CEKSearcher::selectState() {
 			{
 				std::cerr << " in ce";
 				n = n->right;
-				TChoiceItem *ci = tcit;
+				TChoiceItem *ci = &*tcit;
 				ceStateMap[ci] = true;
 				cereach ++;
 			}
