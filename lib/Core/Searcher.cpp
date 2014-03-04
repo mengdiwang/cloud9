@@ -230,11 +230,14 @@ ExecutionState &CEKSearcher::selectState() {
 		{
 			std::cerr << "right ";
 			n = n->right;
-			if(n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::TRUE))
+			if(cecanuse && n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
 				std::cerr << " in ce";
-				TChoiceItem *ci = &*tcit;
-				ceStateMap[ci] = true;
+				if(cecanuse)
+				{
+					TChoiceItem *ci = &*tcit;
+					ceStateMap[ci] = true;
+				}
 				cereach ++;
 			}
 			std::cerr << "\n";
@@ -243,7 +246,7 @@ ExecutionState &CEKSearcher::selectState() {
 		{
 			std::cerr << "left ";
 			n = n->left;
-			if(n->data && (tcit->chosenInst == n->data->pc()->inst)
+			if(cecanuse && n->data && (tcit->chosenInst == n->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
 				std::cerr << " in ce";
@@ -256,7 +259,7 @@ ExecutionState &CEKSearcher::selectState() {
 		else
 		{
 			std::cerr << "all";
-			if(n->left->data && (tcit->chosenInst == n->left->data->pc()->inst)
+			if(cecanuse && n->left->data && (tcit->chosenInst == n->left->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
 				//got and will exit the loop
@@ -266,7 +269,7 @@ ExecutionState &CEKSearcher::selectState() {
 				ceStateMap[ci] = true;
 				cereach ++;
 			}
-			else if(n->right->data && (tcit->chosenInst == n->right->data->pc()->inst)
+			else if(cecanuse && n->right->data && (tcit->chosenInst == n->right->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
 				std::cerr << " in ce";
