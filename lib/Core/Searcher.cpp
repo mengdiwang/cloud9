@@ -294,7 +294,8 @@ ExecutionState &CEKSearcher::selectState() {
 		}
 	}
 
-	std::cerr << "{Encounter " << cereach << " edges}\n";
+	if(cereach>0)
+		std::cerr << "{Encounter " << cereach << " edges}\n";
 	return *n->data;
   //return *states.back();
 }
@@ -303,10 +304,10 @@ void CEKSearcher::update(ExecutionState *current,
                          const std::set<ExecutionState*> &addedStates,
                          const std::set<ExecutionState*> &removedStates) {
 
-	if(current->pc()->inst == GoalInst)
+	if(current && current->pc()->inst == GoalInst)
 	{
 		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
-		//executor.setHaltExecution(true);
+		executor.setHaltExecution(true);
 
 	}
   states.insert(states.end(),
