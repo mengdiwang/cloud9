@@ -93,6 +93,7 @@ void CEKSearcher::Init(std::string defectFile)
     cepaths.clear();
     ceStateMap.clear();
     GoalInst = NULL;
+    forbitSet.clear();
     defectList dl;
     getDefectList(defectFile, &dl);
     if(dl.size() <= 0)
@@ -269,6 +270,7 @@ ExecutionState &CEKSearcher::selectState() {
 				TChoiceItem *ci = &*tcit;
 				ceStateMap[ci] = true;
 				cereach ++;
+				forbitSet.insert(n->right);
 			}
 			else if(cecanuse && n->right->data && (tcit->chosenInst == n->right->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::TRUE))
@@ -278,17 +280,25 @@ ExecutionState &CEKSearcher::selectState() {
 				TChoiceItem *ci = &*tcit;
 				ceStateMap[ci] = true;
 				cereach ++;
+				forbitSet.insert(n->left);
 			}
 			else
 			{
-				std::cerr << " random";
-				if(bits == 0)
+				if(forbitSet.count(n->left)>0)
+					n = n->right;
+				else if(forbitSet.count(n->right)>0)
+					n = n->left;
+				else
 				{
-					flips = theRNG.getInt32();
-					bits = 32;
+					std::cerr << " random";
+					if(bits == 0)
+					{
+						flips = theRNG.getInt32();
+						bits = 32;
+					}
+					bits --;
+					n = (flips & (1<<bits)) ? n->left : n->right;
 				}
-				bits --;
-				n = (flips & (1<<bits)) ? n->left : n->right;
 			}
 			std::cerr << "\n";
 		}
