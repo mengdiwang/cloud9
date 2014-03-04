@@ -266,21 +266,23 @@ ExecutionState &CEKSearcher::selectState() {
 			{
 				//got and will exit the loop
 				std::cerr << " in ce";
+				forbitSet.insert(n->right);
 				n = n->left;
 				TChoiceItem *ci = &*tcit;
 				ceStateMap[ci] = true;
 				cereach ++;
-				forbitSet.insert(n->right);
+
 			}
 			else if(cecanuse && n->right->data && (tcit->chosenInst == n->right->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
 				std::cerr << " in ce";
+				forbitSet.insert(n->left);
 				n = n->right;
 				TChoiceItem *ci = &*tcit;
 				ceStateMap[ci] = true;
 				cereach ++;
-				forbitSet.insert(n->left);
+
 			}
 			else
 			{
