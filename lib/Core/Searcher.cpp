@@ -230,11 +230,11 @@ ExecutionState &CEKSearcher::selectState() {
 	{
 		if(!n->left)
 		{
-			std::cerr << "right ";
+			std::cerr << "Only right ";
 			n = n->right;
 			if(cecanuse && n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
-				std::cerr << " in ce";
+				std::cerr << "in ce";
 				if(cecanuse)
 				{
 					TChoiceItem *ci = &*tcit;
@@ -246,12 +246,12 @@ ExecutionState &CEKSearcher::selectState() {
 		}
 		else if(!n->right)
 		{
-			std::cerr << "left ";
+			std::cerr << "Only left ";
 			n = n->left;
 			if(cecanuse && n->data && (tcit->chosenInst == n->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
-				std::cerr << " in ce";
+				std::cerr << "in ce";
 				TChoiceItem *ci = &*tcit;
 				ceStateMap[ci] = true;
 				cereach ++;
@@ -260,12 +260,12 @@ ExecutionState &CEKSearcher::selectState() {
 		}
 		else
 		{
-			std::cerr << "all";
+			std::cerr << "Bichild:";
 			if(cecanuse && n->left->data && (tcit->chosenInst == n->left->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
 				//got and will exit the loop
-				std::cerr << " in ce";
+				std::cerr << "left in ce";
 				forbitSet.insert(n->right);
 				n = n->left;
 				TChoiceItem *ci = &*tcit;
@@ -276,7 +276,7 @@ ExecutionState &CEKSearcher::selectState() {
 			else if(cecanuse && n->right->data && (tcit->chosenInst == n->right->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
-				std::cerr << " in ce";
+				std::cerr << "right in ce";
 				forbitSet.insert(n->left);
 				n = n->right;
 				TChoiceItem *ci = &*tcit;
@@ -287,9 +287,15 @@ ExecutionState &CEKSearcher::selectState() {
 			else
 			{
 				if(forbitSet.count(n->left)>0)
+				{
 					n = n->right;
+					std::cerr << "right non neg";
+				}
 				else if(forbitSet.count(n->right)>0)
+				{
 					n = n->left;
+					std::cerr << "left non neg";
+				}
 				else
 				{
 					std::cerr << " random";
