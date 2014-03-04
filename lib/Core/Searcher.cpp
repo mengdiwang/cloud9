@@ -444,23 +444,27 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
     klee::KModule *km = executor.kmodule;
     BasicBlock *bb = NULL;
 
+    int linenolow = 0;
     for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
     {
-    	for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
-
-    	for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
-        //for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
+    	//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
+    	//for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
+        for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
         {
         	unsigned lineno= km->infos->getInfo(&*it).line;
 			std::string filename = km->infos->getInfo(&*it).file;
         	std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
-			if(lineno == line && filename == file)
+        	if(line > linenolow && line <= lineno && filename == file)//change to range search
+			//if(lineno == line && filename == file)
         	{
+        		if(line != lineno)
+        			std::cerr << "Approximately ";
         		std::cerr << "find the target\n";
         		bb = &*it->getParent();
         		GoalInst = &*it;
         		return bb;
         	}
+        	linenolow = lineno;
         }
     }
 
