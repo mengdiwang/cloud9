@@ -433,7 +433,7 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
         	{
         		std::cerr << "find the target\n";
         		bb = &*it->getParent();
-        		GoalInst = bb;
+        		GoalInst = &*it;
         		return bb;
         	}
         }
