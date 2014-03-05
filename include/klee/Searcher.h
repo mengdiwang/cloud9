@@ -201,8 +201,17 @@ namespace klee {
 	  std::vector<ExecutionState*> states;
 	  Executor &executor;
 	  int miss_ctr;
+
+	  Graph bbG;
+	  std::map<BasicBlock*, Vertex> bbMap;
+	  std::vector<std::map<llvm::Instruction*, bool> > instMaps;
+	  std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
+	  std::set<BasicBlock *> isCallsite;
+
   private:
 	  void Init(std::string defectFile);
+	  //void BuildGraph();
+
 
   public:
 	  EDSearcher(Executor &_executor, std::string cefile);
