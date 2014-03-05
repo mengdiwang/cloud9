@@ -753,6 +753,17 @@ EDSearcher::EDSearcher(Executor &_executor, std::string defectFile):executor(_ex
 	Init(defectFile);
 }
 
+ExecutionState& EDSearcher::selectState()
+{
+	return states.end();
+}
+
+void EDSearcher::update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
+            const std::set<ExecutionState*> &removedStates)
+{
+
+}
+
 void EDSearcher::Init(std::string defectFile)
 {
 	defectList dl;
