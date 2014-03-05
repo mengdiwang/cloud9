@@ -20,7 +20,10 @@ using namespace klee;
 namespace {
     
   cl::opt<std::string>
-  UseCEKSearch("use-cek-search", cl::desc("Specity input defect file"));
+  UseCEKSearch("use-cek-search", cl::desc("Specify input defect file"));
+
+  cl::opt<std::string>
+  UseEDSearch("use-ed-search", cl::desc("Specify input defect file"));
 
   cl::opt<bool>
   UseRandomSearch("use-random-search");
@@ -119,7 +122,10 @@ Searcher *klee::constructUserSearcher(Executor &executor, Searcher *original) {
         //searcher = new CESearcher(executor, UseCESearch);
     } else if (UseCEKSearch !=""){
 	searcher = new CEKSearcher(executor, UseCEKSearch);
-    } else {
+    } else if (UseEDSearch !=""){
+    searcher = new EDSearcher(executor, UseEDSearch);
+    }
+    else{
     searcher = new DFSSearcher();
     }
   }

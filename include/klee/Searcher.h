@@ -114,6 +114,14 @@ namespace klee {
     }
   };
   */
+    typedef std::map<std::string, std::vector<unsigned> > defectList;
+    typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property,
+	boost::property<boost::edge_weight_t, int> > Graph;
+    typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
+  	typedef boost::graph_traits<Graph>::edge_descriptor Edge;
+	typedef boost::color_traits<boost::default_color_type> Color;
+	typedef std::vector<boost::default_color_type> ColorVec;
+
 	struct TChoiceItem
     {
     	TChoiceItem(llvm::Instruction *_Inst, llvm::Instruction* _chosenInst, int _brChoice, const InstructionInfo *_brinfo)
@@ -132,15 +140,6 @@ namespace klee {
 
   private:
     enum BrType {FALSE=0, TRUE=1};
-    typedef std::map<std::string, std::vector<unsigned> > defectList;
-    typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property,
-    boost::property<boost::edge_weight_t, int> > Graph;
-    typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
-    typedef boost::graph_traits<Graph>::edge_descriptor Edge;
-    typedef boost::color_traits<boost::default_color_type> Color;
-    typedef std::vector<boost::default_color_type> ColorVec;
-
-
 
     llvm::Instruction *GoalInst;
     std::vector<ExecutionState*> states;
@@ -163,7 +162,7 @@ namespace klee {
       
     BasicBlock *FindTarget(std::string file, unsigned line);
     void BuildGraph();
-    void getDefectList(std::string docname, defectList *res);
+    //void getDefectList(std::string docname, defectList *res);
     void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList);
     void findCEofSingleBB(BasicBlock *targetB, TCList &ceList);
     
@@ -197,6 +196,30 @@ namespace klee {
       os << "CEKSearcher\n";
     }
   };
+
+  class EDSearcher:public Searcher{
+  private:
+	  std::vector<ExecutionState*> states;
+	  Executor &executor;
+	  int miss_ctr;
+  private:
+	  void Init(std::string defectFile);
+
+  public:
+	  EDSearcher(Executor &_executor, std::string cefile);
+      ExecutionState &selectState();
+      void update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
+                  const std::set<ExecutionState*> &removedStates);
+      bool empty() {return states.empty();}
+      void printName(std::ostream &os)
+      {
+        os << "Edit_Distance_Searcher\n";
+      }
+
+
+    };
+
+
 	//~
 
   class DFSSearcher : public Searcher {
