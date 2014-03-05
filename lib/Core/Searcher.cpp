@@ -752,7 +752,7 @@ EDSearcher::EDSearcher(Executor &_executor, std::string defectFile):executor(_ex
 
 ExecutionState& EDSearcher::selectState()
 {
-	return states.end();
+	return *states.back();
 }
 
 void EDSearcher::update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
