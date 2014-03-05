@@ -75,6 +75,113 @@ bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b)
     return a.brinfo->line < b.brinfo->line;
 }
 
+BasicBlock* GetMainBB()
+{	
+	BasicBlock *rootBB = NULL;
+	for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+	{
+		if(fit->getName.str() == "main")
+		{
+			if(rootBB!=NULL)
+			{
+				std::cerr << "Multi main\n";
+			}
+			else
+			{
+				std::cerr << "get the main\n";
+				rootBB = &(fit->getEntryBlock());
+			}
+				
+		}
+	}
+	return rootBB;
+}
+
+void addBBEdges(BasicBlock *BB, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG)
+{
+    graph_traits<Graph>::edge_descriptor e;
+    bool inserted;
+    property_map<Graph, edge_weight_t>::type bbWeightmap = get(edge_weight, bbG);
+    
+    for(succ_iterator si = succ_begin(BB); si!=succ_end(BB); ++si)
+    {
+		std::cerr << "add block\n";
+        boost::tie(e, inserted) = add_edge(bbMap[BB], bbMap[*si], bbG);
+        if(inserted)
+            addBBEdges(*si, bbMap, bbG);
+        bbWeightmap[e] = 1;
+    }
+}
+
+void BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG,
+				std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > &CallBlockMap,
+				std::set<BasicBlock *> &isCallsite)
+{
+	llvm::Module *M = executor.kmodule->module;
+
+    for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+    {
+        Function *F = fit;
+        std::cerr << "Add block in the function " << F->getName().str() << "\n";
+        for(Function::iterator bbit = F->begin(), bb_ie=F->end(); bbit != bb_ie; ++bbit)
+        {
+            BasicBlock *BB = bbit;
+            bbMap[BB] = add_vertex(bbG);
+        }
+    }
+    
+	//property_map<Graph, edge_weight_t>::type funcWeightmap = get(edge_weight, funcG);
+    property_map<Graph, boost::edge_weight_t>::type bbWeightmap = boost::get(boost::edge_weight, bbG);
+    
+	for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+    {
+        boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
+        
+		Function *F = fit;
+		if(!F->empty())
+		{
+			std::cerr << "add unempty function:" << F->getName().str() << "\n";
+		    BasicBlock *BB = &F->getEntryBlock();
+			addBBEdges(BB, bbMap, bbG);
+		}
+		
+        for(inst_iterator it = inst_begin(fit), ie = inst_end(fit); it!=ie; ++it)
+        {
+            llvm::Instruction *i = &*it;
+			std::cerr << "reach inst:" <<executor.kmodule->infos->getInfo(i).line << "in file " << extractfilename(executor.kmodule->infos->getInfo(i).file) << "\n";
+            if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
+            {
+				std::cerr << "get caller instruction\n";
+                
+                CallSite cs(i);
+                Function *f = cs.getCalledFunction();
+                
+                if(f == NULL)
+                    continue;
+                if(f->empty())
+                    continue;
+            
+                BasicBlock *callerBB = i->getParent();
+                Function::iterator cBBit = &f->getEntryBlock();
+                BasicBlock *calleeBB = &*cBBit;
+                if(calleeBB == NULL)
+                    continue;
+                
+                boost::tie(e, inserted) = boost::add_edge(bbMap[callerBB], bbMap[calleeBB], bbG);
+                bbWeightmap[e] = 1;
+                
+                CallBlockMap[std::make_pair(fit, f)].push_back(callerBB);
+				std::cerr << "function:" << fit->getName().str()  << " call function:" << f->getName().str()<<"\n";
+                if(!isCallsite.count(callerBB))
+                    isCallsite.insert(callerBB);
+                
+            }
+        }
+    }
+	//PrintDotGraph();
+}
+
+
 void /*CEKSearcher::*/getDefectList(std::string docname, defectList *res)
 {
     std::cerr << "Open defect file " << docname << "\n";
@@ -138,7 +245,7 @@ void CEKSearcher::Init(std::string defectFile)
     getDefectList(defectFile, &dl);
     if(dl.size() <= 0)
     {
-        std::cerr << "No entry in defectFile.t\n";
+        std::cerr << "No entry in defectFile.txt\n";
         return;
     }
     
@@ -765,6 +872,59 @@ void EDSearcher::Init(std::string defectFile)
 {
 	defectList dl;
 	getDefectList(defectFile, &dl);
+	if(dl.size() <=0)
+	{
+		std::cerr << "No entry in defectFile.txt\n";
+		return;
+	}
+	
+	BuildGraph(executor, bbMap, bbG, CallBlockMap, isCallsite);
+	/*
+	for(llvm::Module::iterator fit->M->begin(); fit!=M->end(); ++fit)
+	{
+		int count = 0;
+		for(llvm::Function::iterator bit=fit->begin(); bit!=fit->end(); ++bit)
+		{
+			count ++;
+		}
+		std::cerr << count << " blocks in function " << fit->getName().str() << "\n";
+	}*/
+	
+	//refactor to on func
+	BasicBlock *rootBB = GetMainBB();
+	
+	for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
+	{
+		std::string file = dit->first;
+		lines = dit->second;
+		BasicBlock *bb = NULL;
+		for(std::vector<unsigned>::iterator lit=lines.begin();
+				lit!=lines.end(); ++lit)
+		{
+			std::cerr << "Looking for '" << file << "'(" << *lit << ")\n";
+			for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+			{
+				bb = FindTarget(file, *lit);
+			    if(bb == NULL)
+				{
+					std::cerr << "target:" << file << "'(" << *lit << ") Not find\n";
+					continue;
+				}
+				else
+				{
+					break;
+				}		
+			}
+			
+			if(bb == NULL || rootBB == NULL)
+				continue;
+		
+			Vertex rootv = bbMap[rootBB];
+			Vertex targetv = bbMap[bb];
+			
+			bb = NULL;
+		}
+	}
 
 }
 //~
