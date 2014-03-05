@@ -75,6 +75,46 @@ bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b)
     return a.brinfo->line < b.brinfo->line;
 }
 
+void /*CEKSearcher::*/getDefectList(std::string docname, defectList *res)
+{
+    std::cerr << "Open defect file " << docname << "\n";
+    std::ifstream fin(docname.c_str());
+    std::string fname="";
+    std::vector<unsigned> lineList;
+    while(!fin.eof())
+    {
+        std::string filename="";
+        unsigned lineno;
+
+        fin >> filename >> lineno;
+        if(filename.length() < 1)
+            break;
+        std::cerr << "readin:" << filename << "\n";
+        if(fname == "")
+        {
+            fname = filename;
+        }
+
+        if(fname != filename)
+        {
+            res->insert(std::make_pair(filename, lineList));
+            lineList.clear();
+            fname = filename;
+        }
+
+        lineList.push_back(lineno);
+    }
+    //tail add
+    if(lineList.size()>0 && fname != "")
+    {
+        res->insert(std::make_pair(fname, lineList));
+        lineList.clear();
+    }
+
+    fin.close();
+}
+
+
 std::string extractfilename(std::string path)
 {
 	std::string filename;
@@ -205,7 +245,7 @@ void CEKSearcher::Init(std::string defectFile)
     std::cerr <<"Preparation done\n";
 }
 
-CEKSearcher::CEKSearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
+CEKSearcher::CEKSearcher(Executor &_executor, std::string defectFile):executor(_executor), miss_ctr(0)
 {
 	Init(defectFile);
 }
@@ -667,44 +707,6 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 	std::sort(ceList.begin(), ceList.end(), CompareByLine);
 }
 
-void CEKSearcher::getDefectList(std::string docname, defectList *res)
-{
-    std::cerr << "Open defect file " << docname << "\n";
-    std::ifstream fin(docname.c_str());
-    std::string fname="";
-    std::vector<unsigned> lineList;
-    while(!fin.eof())
-    {
-        std::string filename="";
-        unsigned lineno;
-        
-        fin >> filename >> lineno;
-        if(filename.length() < 1)
-            break;
-        std::cerr << "readin:" << filename << "\n";
-        if(fname == "")
-        {
-            fname = filename;
-        }
-        
-        if(fname != filename)
-        {
-            res->insert(std::make_pair(filename, lineList));
-            lineList.clear();
-            fname = filename;
-        }
-        
-        lineList.push_back(lineno);
-    }
-    //tail add
-    if(lineList.size()>0 && fname != "")
-    {
-        res->insert(std::make_pair(fname, lineList));
-        lineList.clear();
-    }
-    
-    fin.close();
-}
 
 std::string CEKSearcher::getBBName(Vertex v)
 {
@@ -742,9 +744,22 @@ void CEKSearcher::PrintDotGraph()
     boost::write_graphviz(bbs_file, bbG, my_bb_label_writer(this));
 }
 
+//------------EDSearcher--------------//
+EDSearcher::EDSearcher(Executor &_executor, std::string defectFile):executor(_executor), miss_ctr(0)
+{
+	Init(defectFile);
+}
+
+void EDSearcher::Init(std::string defectFile)
+{
+	defectList dl;
+	getDefectList(defectFile, &dl);
+
+}
+//~
 /*
 //----------CESearcher--------------//
-CESearcher::CESearcher(Executor &_executer, std::string defectFile):executor(_executer), miss_ctr(0)
+CESearcher::CESearcher(Executor &_executor, std::string defectFile):executor(_executor), miss_ctr(0)
 {
     //build the path list
 

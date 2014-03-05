@@ -87,6 +87,7 @@ class Executor : public Interpreter, public ::cloud9::worker::SymbolicEngine {
   //wmd
   //friend class CESearcher;
   friend class CEKSearcher;
+  friend class EDSearcher;
   //~
 
 public:
