@@ -222,6 +222,7 @@ namespace klee {
 	  				std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > &CallBlockMap,
 	  				std::set<BasicBlock *> &isCallsite);
 	  BasicBlock *FindTarget(Executor &executor, std::string file, unsigned line, Instruction **GoalInstptr);
+	  std::string getBBName(Vertex v);
 
   public:
 	  EDSearcher(Executor &_executor, std::string cefile);
