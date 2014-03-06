@@ -80,25 +80,28 @@ inline unsigned min(unsigned a, unsigned b)
 
 unsigned EDCompute(std::string tocmp, std::string stdstr)
 {
-	unsigned ret = 0;
 	if(tocmp.length() > maxRow || stdstr.length() > maxRow)
 	{
 		std::cerr << "Exceed maxRow limit\n";
 		return -1;
 	}
 
-	for(int i=0; i<tocmp.length(); i++)
+	size_t m = tocmp.length();
+	size_t n = stdstr.length();
+	n = m //TODO ???
+
+	for(size_t i=0; i<=m; i++)
 	{
-		for(int j=0; j<stdstr.length(); j++)
+		for(size_t j=0; j<=n; j++)
 		{
 			dis[i][j] = INF;
 		}
 	}
 	dis[0][0] = 0;
 
-	for(int i=0; i<tocmp.length(); i++)
+	for(size_t i=0; i<=m; i++)
 	{
-		for(int j=0; j<stdstr.length(); j++)
+		for(size_t j=0; j<=n; j++)
 		{
 			if(i>0) dis[i][j] = min(dis[i][j], dis[i-1][j]+1);//del
 			if(j>0) dis[i][j] = min(dis[i][j], dis[i][j-1]+1);//insert
@@ -106,13 +109,13 @@ unsigned EDCompute(std::string tocmp, std::string stdstr)
 			if(i && j)
 			{
 				if(tocmp[i-1]!=stdstr[j-1])
-					dis[i][j] = min(dis[i][j], dis[i-1][j-1]+1);
+					dis[i][j] = min(dis[i][j], dis[i-1][j-1]+2);
 				else
 					dis[i][j] = min(dis[i][j], dis[i-1][j-1]);
 			}
 		}
 	}
-	return dis[tocmp.length()][stdstr.length()];
+	return dis[m][n];
 }
 
 bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b)
@@ -901,24 +904,38 @@ ExecutionState& EDSearcher::selectState()
 				fval = EDCompute(tmpf, InitStr);
 				strmap.insert(std::make_pair(tmpf, fval));
 			}
-
-			if(tmpt>tmpf)
+			std::cerr << "right path:" << tmpt << " " << tval << " left path:" << tmpf << " " <<fval << "\n";
+			if(tval<fval)
 			{
+				std::cerr << "ed right\n";
 				n = n->right;
+				path += "1";			
 			}
-			else if(tmpt<tmpf)
+			else if(tval>fval)
 			{
+				std::cerr << "ed left\n";
 				n = n->left;
+				path += "0";
 			}
 			else
 			{
+				std::cerr << "random\n"; 
 				if(bits==0)
 				{
 					flips = theRNG.getInt32();
 					bits = 32;
 				}
 				bits--;
-				n = (flips & (1<<bits)) ? n->left:n->right;
+				if((flips & (1<<bits)) > 0) 
+				{
+					n = n->left;
+					path += "0";
+				}				
+				else
+				{ 
+					n = n->right;
+					path += "1";
+				}
 			}
 		}
 	}
@@ -930,6 +947,13 @@ ExecutionState& EDSearcher::selectState()
 void EDSearcher::update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
             const std::set<ExecutionState*> &removedStates)
 {
+
+	if(current && current->pc()->inst == GoalInst)
+	{
+		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
+		executor.setHaltExecution(true);
+
+	}
 	states.insert(states.end(),
 					addedStates.begin(),
 					addedStates.end());
@@ -1087,7 +1111,7 @@ void EDSearcher::GetInitEDStr(std::vector<BasicBlock*> &blist, BasicBlock *tBB, 
 				countbr++;
 				BasicBlock *trueBB = brInst->getSuccessor(0);
 				BasicBlock *falseBB = brInst->getSuccessor(1);
-				Instruction *inst = dyn_cast<Instruction>(brInst);
+				//Instruction *inst = dyn_cast<Instruction>(brInst);
 				if(bbset.count(trueBB))
 				{
 					str+="1";
