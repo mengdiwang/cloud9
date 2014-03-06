@@ -981,6 +981,32 @@ void EDSearcher::GetInitEDStr(std::vector<BasicBlock*> &blist, BasicBlock *tBB, 
 	InitStr.assign(str.rbegin(),str.rend());
 }
 
+std::string EDSearcher::getBBName(Vertex v)
+{
+	std::string res = "<null>";
+	std::stringstream ss;
+	for(std::map<BasicBlock *, Vertex>::iterator it=bbMap.begin(); it!=bbMap.end(); ++it)
+	{
+		if(v == it->second)
+		{
+			BasicBlock *BB = it->first;
+			if(BB!=NULL)
+			{
+				Instruction *end_ins = dyn_cast<Instruction>(BB->getTerminator());
+				Instruction *begin_ins = BB->getFirstNonPHIOrDbg();
+				ss << extractfilename(executor.kmodule->infos->getInfo(begin_ins).file);
+				ss << " ";
+				ss << executor.kmodule->infos->getInfo(begin_ins).line;
+				ss << "-";
+				ss << executor.kmodule->infos->getInfo(end_ins).line;
+				res = ss.str();
+			}
+		}
+	}
+	return res;
+}
+
+
 void EDSearcher::findEDofSingleBB(BasicBlock *targetB, std::string &str)
 {
 	if(targetB == NULL)
@@ -1051,7 +1077,9 @@ void EDSearcher::Init(std::string defectFile)
 			for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
 			{
 				tmpb = getBB(*it);
-				if(tmpb != NULL) bbpath.push_back(tmpb);
+				std::cerr << getBBName(*it) << "\n";
+				if(tmpb != NULL)
+					bbpath.push_back(tmpb);
 			}
 
 			//GetBBPathList(bbpath, bb, ceList);
@@ -1070,7 +1098,6 @@ void CEKSearcher::PrintDotGraph()
     std::ofstream bbs_file("blocks.dot");
     boost::write_graphviz(bbs_file, bbG, my_bb_label_writer(this));
 }
-
 //~
 /*
 //----------CESearcher--------------//
