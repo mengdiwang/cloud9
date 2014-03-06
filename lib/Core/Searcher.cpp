@@ -952,6 +952,7 @@ void EDSearcher::GetInitEDStr(std::vector<BasicBlock*> &blist, BasicBlock *tBB, 
 	std::set<BasicBlock *>bbset;
 	std::string str = "";
 	bool begin = false;
+	int countbr = 0;
 	for(std::vector<BasicBlock *>::reverse_iterator vit=blist.rbegin(); vit!=blist.rend(); ++vit)
 	{
 		BasicBlock *frontB = *vit;
@@ -967,6 +968,7 @@ void EDSearcher::GetInitEDStr(std::vector<BasicBlock*> &blist, BasicBlock *tBB, 
 				continue;
 			if(brInst->isConditional())
 			{
+				countbr++;
 				BasicBlock *trueBB = brInst->getSuccessor(0);
 				BasicBlock *falseBB = brInst->getSuccessor(1);
 				Instruction *inst = dyn_cast<Instruction>(brInst);
@@ -981,6 +983,7 @@ void EDSearcher::GetInitEDStr(std::vector<BasicBlock*> &blist, BasicBlock *tBB, 
 			}
 		}
 	}
+	std::cerr << "countbr:" << countbr << "\n";
 	InitStr.assign(str.rbegin(),str.rend());
 }
 
