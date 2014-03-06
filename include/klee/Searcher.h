@@ -209,6 +209,7 @@ namespace klee {
 	  std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
 	  std::set<BasicBlock *> isCallsite;
 
+	  std::map<std::string, unsigned> strmap;
 	  llvm::Instruction *GoalInst;
 	  std::string InitStr;
   private:
