@@ -97,6 +97,42 @@ BasicBlock* GetMainBB(Module *M)
 	return rootBB;
 }
 
+std::string extractfilename(std::string path)
+{
+	std::string filename;
+	size_t pos = path.find_last_of("/");
+	if(pos != std::string::npos)
+		filename.assign(path.begin() + pos + 1, path.end());
+	else
+		filename = path;
+	return filename;
+}
+
+//find the path on the built graph
+void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target, Graph &graph)
+{
+    std::vector<Vertex> p(num_vertices(graph));
+    std::vector<int> d(num_vertices(graph));
+    property_map<Graph, vertex_index_t>::type indexmap = get(vertex_index, graph);
+    property_map<Graph, edge_weight_t>::type bbWeightmap = get(edge_weight, graph);
+
+    boost::dijkstra_shortest_paths(graph, root, &p[0], &d[0], bbWeightmap, indexmap,
+                            std::less<int>(), closed_plus<int>(),
+                            (std::numeric_limits<int>::max)(), 0,
+                            default_dijkstra_visitor());
+
+    //  std::cout << "shortest path:" << std::endl;
+    while(p[target] != target)
+    {
+        path->insert(path->begin(), target);
+        target = p[target];
+    }
+    // Put the root in the list aswell since the loop above misses that one
+    if(!path->empty())
+        path->insert(path->begin(), root);
+
+}
+
 void addBBEdges(BasicBlock *BB, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG)
 {
     graph_traits<Graph>::edge_descriptor e;
@@ -111,106 +147,6 @@ void addBBEdges(BasicBlock *BB, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG
             addBBEdges(*si, bbMap, bbG);
         bbWeightmap[e] = 1;
     }
-}
-
-void EDSearcher::BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG,
-				std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > &CallBlockMap,
-				std::set<BasicBlock *> &isCallsite)
-{
-	llvm::Module *M = executor.kmodule->module;
-
-    for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
-    {
-        Function *F = fit;
-        std::cerr << "Add block in the function " << F->getName().str() << "\n";
-        for(Function::iterator bbit = F->begin(), bb_ie=F->end(); bbit != bb_ie; ++bbit)
-        {
-            BasicBlock *BB = bbit;
-            bbMap[BB] = add_vertex(bbG);
-        }
-    }
-    
-	//property_map<Graph, edge_weight_t>::type funcWeightmap = get(edge_weight, funcG);
-    property_map<Graph, boost::edge_weight_t>::type bbWeightmap = boost::get(boost::edge_weight, bbG);
-    
-	for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
-    {
-        boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
-        
-		Function *F = fit;
-		if(!F->empty())
-		{
-			std::cerr << "add unempty function:" << F->getName().str() << "\n";
-		    BasicBlock *BB = &F->getEntryBlock();
-			addBBEdges(BB, bbMap, bbG);
-		}
-		
-        for(inst_iterator it = inst_begin(fit), ie = inst_end(fit); it!=ie; ++it)
-        {
-            llvm::Instruction *i = &*it;
-			std::cerr << "reach inst:" <<executor.kmodule->infos->getInfo(i).line << "in file " << extractfilename(executor.kmodule->infos->getInfo(i).file) << "\n";
-            if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
-            {
-				std::cerr << "get caller instruction\n";
-                
-                CallSite cs(i);
-                Function *f = cs.getCalledFunction();
-                
-                if(f == NULL)
-                    continue;
-                if(f->empty())
-                    continue;
-            
-                BasicBlock *callerBB = i->getParent();
-                Function::iterator cBBit = &f->getEntryBlock();
-                BasicBlock *calleeBB = &*cBBit;
-                if(calleeBB == NULL)
-                    continue;
-                
-                boost::tie(e, inserted) = boost::add_edge(bbMap[callerBB], bbMap[calleeBB], bbG);
-                bbWeightmap[e] = 1;
-                
-                CallBlockMap[std::make_pair(fit, f)].push_back(callerBB);
-				std::cerr << "function:" << fit->getName().str()  << " call function:" << f->getName().str()<<"\n";
-                if(!isCallsite.count(callerBB))
-                    isCallsite.insert(callerBB);
-                
-            }
-        }
-    }
-	//PrintDotGraph();
-}
-
-BasicBlock* EDSearcher::FindTarget(Executor &executor, std::string file, unsigned line, Instruction **GoalInstptr)
-{
-	llvm::Module *M = executor.kmodule->module;
-    klee::KModule *km = executor.kmodule;
-    BasicBlock *bb = NULL;
-
-    unsigned linenolow = 0;
-    for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
-    {
-    	//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
-    	//for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
-        for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
-        {
-        	unsigned lineno= km->infos->getInfo(&*it).line;
-			std::string filename = km->infos->getInfo(&*it).file;
-        	std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
-        	if(line > linenolow && line <= lineno && filename == file)//change to range search
-			//if(lineno == line && filename == file)
-        	{
-        		if(line != lineno)
-        			std::cerr << "Approximately ";
-        		std::cerr << "find the target\n";
-        		bb = &*it->getParent();
-        		*GoalInstptr = &*it;
-        		return bb;
-        	}
-        	linenolow = lineno;
-        }
-    }
-    return bb;
 }
 
 void /*CEKSearcher::*/getDefectList(std::string docname, defectList *res)
@@ -250,18 +186,6 @@ void /*CEKSearcher::*/getDefectList(std::string docname, defectList *res)
     }
 
     fin.close();
-}
-
-
-std::string extractfilename(std::string path)
-{
-	std::string filename;
-	size_t pos = path.find_last_of("/");
-	if(pos != std::string::npos)
-		filename.assign(path.begin() + pos + 1, path.end());
-	else
-		filename = path;
-	return filename;
 }
 
 void CEKSearcher::Init(std::string defectFile)
@@ -615,32 +539,6 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex 
     
 }
 
-//find the path on the built graph
-void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target, Graph &graph)
-{
-    std::vector<Vertex> p(num_vertices(graph));
-    std::vector<int> d(num_vertices(graph));
-    property_map<Graph, vertex_index_t>::type indexmap = get(vertex_index, graph);
-    property_map<Graph, edge_weight_t>::type bbWeightmap = get(edge_weight, graph);
-
-    boost::dijkstra_shortest_paths(graph, root, &p[0], &d[0], bbWeightmap, indexmap,
-                            std::less<int>(), closed_plus<int>(),
-                            (std::numeric_limits<int>::max)(), 0,
-                            default_dijkstra_visitor());
-
-    //  std::cout << "shortest path:" << std::endl;
-    while(p[target] != target)
-    {
-        path->insert(path->begin(), target);
-        target = p[target];
-    }
-    // Put the root in the list aswell since the loop above misses that one
-    if(!path->empty())
-        path->insert(path->begin(), root);
-
-}
-
-
 BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
 {
 	llvm::Module *M = executor.kmodule->module;
@@ -943,6 +841,107 @@ BasicBlock *EDSearcher::getBB(Vertex v)
     }
     return NULL;
 }
+
+void EDSearcher::BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG,
+				std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > &CallBlockMap,
+				std::set<BasicBlock *> &isCallsite)
+{
+	llvm::Module *M = executor.kmodule->module;
+
+    for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+    {
+        Function *F = fit;
+        std::cerr << "Add block in the function " << F->getName().str() << "\n";
+        for(Function::iterator bbit = F->begin(), bb_ie=F->end(); bbit != bb_ie; ++bbit)
+        {
+            BasicBlock *BB = bbit;
+            bbMap[BB] = add_vertex(bbG);
+        }
+    }
+
+	//property_map<Graph, edge_weight_t>::type funcWeightmap = get(edge_weight, funcG);
+    property_map<Graph, boost::edge_weight_t>::type bbWeightmap = boost::get(boost::edge_weight, bbG);
+
+	for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+    {
+        boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
+
+		Function *F = fit;
+		if(!F->empty())
+		{
+			std::cerr << "add unempty function:" << F->getName().str() << "\n";
+		    BasicBlock *BB = &F->getEntryBlock();
+			addBBEdges(BB, bbMap, bbG);
+		}
+
+        for(inst_iterator it = inst_begin(fit), ie = inst_end(fit); it!=ie; ++it)
+        {
+            llvm::Instruction *i = &*it;
+			std::cerr << "reach inst:" <<executor.kmodule->infos->getInfo(i).line << "in file " << extractfilename(executor.kmodule->infos->getInfo(i).file) << "\n";
+            if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
+            {
+				std::cerr << "get caller instruction\n";
+
+                CallSite cs(i);
+                Function *f = cs.getCalledFunction();
+
+                if(f == NULL)
+                    continue;
+                if(f->empty())
+                    continue;
+
+                BasicBlock *callerBB = i->getParent();
+                Function::iterator cBBit = &f->getEntryBlock();
+                BasicBlock *calleeBB = &*cBBit;
+                if(calleeBB == NULL)
+                    continue;
+
+                boost::tie(e, inserted) = boost::add_edge(bbMap[callerBB], bbMap[calleeBB], bbG);
+                bbWeightmap[e] = 1;
+
+                CallBlockMap[std::make_pair(fit, f)].push_back(callerBB);
+				std::cerr << "function:" << fit->getName().str()  << " call function:" << f->getName().str()<<"\n";
+                if(!isCallsite.count(callerBB))
+                    isCallsite.insert(callerBB);
+
+            }
+        }
+    }
+	//PrintDotGraph();
+}
+
+BasicBlock* EDSearcher::FindTarget(Executor &executor, std::string file, unsigned line, Instruction **GoalInstptr)
+{
+	llvm::Module *M = executor.kmodule->module;
+    klee::KModule *km = executor.kmodule;
+    BasicBlock *bb = NULL;
+
+    unsigned linenolow = 0;
+    for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
+    {
+    	//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
+    	//for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
+        for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
+        {
+        	unsigned lineno= km->infos->getInfo(&*it).line;
+			std::string filename = km->infos->getInfo(&*it).file;
+        	std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
+        	if(line > linenolow && line <= lineno && filename == file)//change to range search
+			//if(lineno == line && filename == file)
+        	{
+        		if(line != lineno)
+        			std::cerr << "Approximately ";
+        		std::cerr << "find the target\n";
+        		bb = &*it->getParent();
+        		*GoalInstptr = &*it;
+        		return bb;
+        	}
+        	linenolow = lineno;
+        }
+    }
+    return bb;
+}
+
 
 void EDSearcher::GetInitEDStr(std::vector<BasicBlock*> &blist, BasicBlock *tBB, std::string &InitStr)
 {
