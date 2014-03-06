@@ -209,10 +209,15 @@ namespace klee {
 	  std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
 	  std::set<BasicBlock *> isCallsite;
 
+	  llvm::Instruction *GoalInst;
+	  std::string InitStr;
   private:
 	  void Init(std::string defectFile);
+	  BasicBlock* getBB(Vertex v);
+	  void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, std::string &initList);
+	  void GetInitEDStr(std::vector<BasicBlock*> &bbpath, BasicBlock *bb, std::string &InitStr);
 	  //void BuildGraph();
-
+	  void findEDofSingleBB(BasicBlock *frontB, std::string &str);
 
   public:
 	  EDSearcher(Executor &_executor, std::string cefile);

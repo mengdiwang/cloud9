@@ -181,6 +181,37 @@ void BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph 
 	//PrintDotGraph();
 }
 
+BasicBlock *FindTarget(Executor &executor, std::string file, unsigned line, Instruction **GoalInstptr)
+{
+	llvm::Module *M = executor.kmodule->module;
+    klee::KModule *km = executor.kmodule;
+    BasicBlock *bb = NULL;
+
+    unsigned linenolow = 0;
+    for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
+    {
+    	//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
+    	//for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
+        for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
+        {
+        	unsigned lineno= km->infos->getInfo(&*it).line;
+			std::string filename = km->infos->getInfo(&*it).file;
+        	std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
+        	if(line > linenolow && line <= lineno && filename == file)//change to range search
+			//if(lineno == line && filename == file)
+        	{
+        		if(line != lineno)
+        			std::cerr << "Approximately ";
+        		std::cerr << "find the target\n";
+        		bb = &*it->getParent();
+        		*GoalInstptr = &*it;
+        		return bb;
+        	}
+        	linenolow = lineno;
+        }
+    }
+    return bb;
+}
 
 void /*CEKSearcher::*/getDefectList(std::string docname, defectList *res)
 {
@@ -584,6 +615,31 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex 
     
 }
 
+//find the path on the built graph
+void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target, Graph &graph)
+{
+    std::vector<Vertex> p(num_vertices(graph));
+    std::vector<int> d(num_vertices(graph));
+    property_map<Graph, vertex_index_t>::type indexmap = get(vertex_index, graph);
+    property_map<Graph, edge_weight_t>::type bbWeightmap = get(edge_weight, graph);
+
+    boost::dijkstra_shortest_paths(graph, root, &p[0], &d[0], bbWeightmap, indexmap,
+                            std::less<int>(), closed_plus<int>(),
+                            (std::numeric_limits<int>::max)(), 0,
+                            default_dijkstra_visitor());
+
+    //  std::cout << "shortest path:" << std::endl;
+    while(p[target] != target)
+    {
+        path->insert(path->begin(), target);
+        target = p[target];
+    }
+    // Put the root in the list aswell since the loop above misses that one
+    if(!path->empty())
+        path->insert(path->begin(), root);
+
+}
+
 
 BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
 {
@@ -614,7 +670,6 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
         	linenolow = lineno;
         }
     }
-
     return bb;
 }
 
@@ -703,6 +758,7 @@ void CEKSearcher::BuildGraph()
 
 void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList)
 {
+	//actually it gets the bb paths on a minimal functions path.
 	TCList list;
 	std::set<Function *> fset;
 	for(std::vector<BasicBlock *>::reverse_iterator vit=blist.rbegin(); vit!=blist.rend(); ++vit)
@@ -843,17 +899,6 @@ std::string CEKSearcher::getBBName(Vertex v)
 	return res;
 }
 
-
-
-#include <boost/graph/graphviz.hpp> //graphviz not compatitable with dijkstra
-//namespace llvm
-//{
-void CEKSearcher::PrintDotGraph()
-{      
-    std::ofstream bbs_file("blocks.dot");
-    boost::write_graphviz(bbs_file, bbG, my_bb_label_writer(this));
-}
-
 //------------EDSearcher--------------//
 EDSearcher::EDSearcher(Executor &_executor, std::string defectFile):executor(_executor), miss_ctr(0)
 {
@@ -868,11 +913,88 @@ ExecutionState& EDSearcher::selectState()
 void EDSearcher::update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
             const std::set<ExecutionState*> &removedStates)
 {
+	states.insert(states.end(),
+					addedStates.begin(),
+					addedStates.end());
+	for (std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
+		ie = removedStates.end(); it != ie; ++it) {
+		ExecutionState *es = *it;
+		bool ok = false;
+
+		for (std::vector<ExecutionState*>::iterator it = states.begin(),
+	           ie = states.end(); it != ie; ++it) {
+			if (es==*it) {
+				states.erase(it);
+				ok = true;
+				break;
+			}
+	    }
+
+		assert(ok && "invalid state removed");
+	}
+}
+
+BasicBlock *EDSearcher::getBB(Vertex v)
+{
+    for(std::map<BasicBlock *, Vertex>::iterator it=bbMap.begin(); it!=bbMap.end(); ++it)
+    {
+        if(v == it->second)
+            return it->first;
+    }
+    return NULL;
+}
+
+void EDSearcher::GetInitEDStr(std::vector<BasicBlock*> &blist, BasicBlock *tBB, std::string &InitStr)
+{
+	std::set<Function *> fset;
+	std::set<BasicBlock *>bbset;
+	std::string str = "";
+	bool begin = false;
+	for(std::vector<BasicBlock *>::reverse_iterator vit=blist.rbegin(); vit!=blist.rend(); ++vit)
+	{
+		BasicBlock *frontB = *vit;
+		bbset.insert(frontB);
+		if(*vit == tBB)
+		{
+			begin = true;
+		}
+		else if(begin)
+		{
+			BranchInst *brInst =dyn_cast<BranchInst>(frontB->getTerminator());
+			if(brInst == NULL)
+				continue;
+			if(brInst->isConditional())
+			{
+				BasicBlock *trueBB = brInst->getSuccessor(0);
+				BasicBlock *falseBB = brInst->getSuccessor(1);
+				Instruction *inst = dyn_cast<Instruction>(brInst);
+				if(bbset.count(trueBB) && !bbset.count(falseBB))
+				{
+					str+="1";
+				}
+				else if(bbset.count(falseBB) && !bbset.count(trueBB))
+				{
+					str+="0";
+				}
+			}
+		}
+	}
+	InitStr.assign(str.rbegin(),str.rend());
+}
+
+void EDSearcher::findEDofSingleBB(BasicBlock *targetB, std::string &str)
+{
+	if(targetB == NULL)
+		return;
+
+
 
 }
 
 void EDSearcher::Init(std::string defectFile)
 {
+	GoalInst = NULL;
+	llvm::Module *M = executor.kmodule->module;
 	defectList dl;
 	getDefectList(defectFile, &dl);
 	if(dl.size() <=0)
@@ -881,6 +1003,7 @@ void EDSearcher::Init(std::string defectFile)
 		return;
 	}
 	
+    std::vector<Vertex> path;
 	BuildGraph(executor, bbMap, bbG, CallBlockMap, isCallsite);
 	/*
 	for(llvm::Module::iterator fit->M->begin(); fit!=M->end(); ++fit)
@@ -895,7 +1018,8 @@ void EDSearcher::Init(std::string defectFile)
 	
 	//refactor to on func
 	BasicBlock *rootBB = GetMainBB();
-	
+	std::vector<BasicBlock *> bbpath;
+	std::vector<unsigned> lines;
 	for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
 	{
 		std::string file = dit->first;
@@ -907,7 +1031,7 @@ void EDSearcher::Init(std::string defectFile)
 			std::cerr << "Looking for '" << file << "'(" << *lit << ")\n";
 			for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
 			{
-				bb = FindTarget(file, *lit);
+				bb = FindTarget(executor, file, *lit, &GoalInst);
 			    if(bb == NULL)
 				{
 					std::cerr << "target:" << file << "'(" << *lit << ") Not find\n";
@@ -925,11 +1049,32 @@ void EDSearcher::Init(std::string defectFile)
 			Vertex rootv = bbMap[rootBB];
 			Vertex targetv = bbMap[bb];
 			
+			findSinglePath(&path, rootv, targetv, bbG);
+
+			BasicBlock *tmpb = NULL;
+			for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
+			{
+				tmpb = getBB(*it);
+				if(tmpb != NULL) bbpath.push_back(tmpb);
+			}
+
+			//GetBBPathList(bbpath, bb, ceList);
+			GetInitEDStr(bbpath, bb, InitStr);
 			bb = NULL;
 		}
 	}
-
+	std::cerr << "InitED:" << InitStr <<"\n";
 }
+
+#include <boost/graph/graphviz.hpp> //graphviz not compatitable with dijkstra
+//namespace llvm
+//{
+void CEKSearcher::PrintDotGraph()
+{
+    std::ofstream bbs_file("blocks.dot");
+    boost::write_graphviz(bbs_file, bbG, my_bb_label_writer(this));
+}
+
 //~
 /*
 //----------CESearcher--------------//
