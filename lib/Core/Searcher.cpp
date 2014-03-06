@@ -66,8 +66,54 @@ namespace klee {
 Searcher::~Searcher() {
 }
 
-///
-//----------CEKSearcher-------------//
+//-------------------------------------//
+//----------Util Functions-------------//
+//-------------------------------------//
+const int maxRow = 100;
+const unsigned INF = 1000000;
+int dis[maxRow+1][maxRow+1];
+
+inline unsigned min(unsigned a, unsigned b)
+{
+	return a<b?a:b;
+}
+
+unsigned EDCompute(std::string tocmp, std::string stdstr)
+{
+	unsigned ret = 0;
+	if(tocmp.length() > maxRow || stdstr.length() > maxRow)
+	{
+		std::cerr << "Exceed maxRow limit\n";
+		return -1;
+	}
+
+	for(int i=0; i<tocmp.length(); i++)
+	{
+		for(int j=0; j<stdstr.length(); j++)
+		{
+			dis[i][j] = INF;
+		}
+	}
+	dis[0][0] = 0;
+
+	for(int i=0; i<tocmp.length(); i++)
+	{
+		for(int j=0; j<stdstr.length(); j++)
+		{
+			if(i>0) dis[i][j] = min(dis[i][j], dis[i-1][j]+1);//del
+			if(j>0) dis[i][j] = min(dis[i][j], dis[i][j-1]+1);//insert
+
+			if(i && j)
+			{
+				if(tocmp[i-1]!=stdstr[j-1])
+					dis[i][j] = min(dis[i][j], dis[i-1][j-1]+1);
+				else
+					dis[i][j] = min(dis[i][j], dis[i-1][j-1]);
+			}
+		}
+	}
+	return dis[tocmp.length()][stdstr.length()];
+}
 
 bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b)
 {
@@ -187,6 +233,10 @@ void /*CEKSearcher::*/getDefectList(std::string docname, defectList *res)
 
     fin.close();
 }
+
+//-------------------------------------//
+//-------------CEKSearcher-------------//
+//-------------------------------------//
 
 void CEKSearcher::Init(std::string defectFile)
 {
@@ -805,6 +855,25 @@ EDSearcher::EDSearcher(Executor &_executor, std::string defectFile):executor(_ex
 
 ExecutionState& EDSearcher::selectState()
 {
+	PTree::Node *n = executor.processTree->root;
+	while(!n->data)
+	{
+		if(!n->left)
+		{
+			std::cerr << "Only right\n";
+			n = n->right;
+		}
+		else if(!n->right)
+		{
+			std::cerr << "Only left\n";
+			n = n->left;
+		}
+		else
+		{
+
+		}
+	}
+
 	return *states.back();
 }
 
