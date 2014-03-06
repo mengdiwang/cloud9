@@ -855,26 +855,73 @@ EDSearcher::EDSearcher(Executor &_executor, std::string defectFile):executor(_ex
 
 ExecutionState& EDSearcher::selectState()
 {
+	unsigned flips = 0, bits = 0;
 	PTree::Node *n = executor.processTree->root;
+	std::string path = "";
+	std::string tmpt = "";
+	std::string tmpf = "";
+	unsigned tval, fval;
+
 	while(!n->data)
 	{
 		if(!n->left)
 		{
+			path += "0";
 			std::cerr << "Only right\n";
 			n = n->right;
 		}
 		else if(!n->right)
 		{
+			path += "1";
 			std::cerr << "Only left\n";
 			n = n->left;
 		}
 		else
 		{
+			tmpt = path+"1";
+			if(strmap.count(tmpt)>0)
+			{
+				tval = strmap[tmpt];
+			}
+			else
+			{
+				tval = EDCompute(tmpt, InitStr);
+				strmap.insert(std::make_pair(tmpt, tval));
+			}
+			tmpf = path+"0";
+			if(strmap.count(tmpf)>0)
+			{
+				fval = strmap[tmpf];
+			}
+			else
+			{
+				fval = EDCompute(tmpf, InitStr);
+				strmap.insert(std::make_pair(tmpf, fval));
+			}
 
+			if(tmpt>tmpf)
+			{
+				n = n->right;
+			}
+			else if(tmpt<tmpf)
+			{
+				n = n->left;
+			}
+			else
+			{
+				if(bits==0)
+				{
+					flips = theRNG.getInt32();
+					bits = 32;
+				}
+				bits--;
+				n = (flips & (1<<bits)) ? n->left:n->right;
+			}
 		}
 	}
 
-	return *states.back();
+	return *n->data;
+	//return *states.back();
 }
 
 void EDSearcher::update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
@@ -1087,6 +1134,7 @@ void EDSearcher::Init(std::string defectFile)
 	GoalInst = NULL;
 	llvm::Module *M = executor.kmodule->module;
 	defectList dl;
+	strmap.clear();
 	getDefectList(defectFile, &dl);
 	if(dl.size() <=0)
 	{
