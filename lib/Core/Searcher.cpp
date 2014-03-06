@@ -75,12 +75,12 @@ bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b)
     return a.brinfo->line < b.brinfo->line;
 }
 
-BasicBlock* GetMainBB()
+BasicBlock* GetMainBB(Module *M)
 {	
 	BasicBlock *rootBB = NULL;
 	for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
 	{
-		if(fit->getName.str() == "main")
+		if(fit->getName().str() == "main")
 		{
 			if(rootBB!=NULL)
 			{
@@ -113,7 +113,7 @@ void addBBEdges(BasicBlock *BB, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG
     }
 }
 
-void BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG,
+void EDSearcher::BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG,
 				std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > &CallBlockMap,
 				std::set<BasicBlock *> &isCallsite)
 {
@@ -181,7 +181,7 @@ void BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph 
 	//PrintDotGraph();
 }
 
-BasicBlock *FindTarget(Executor &executor, std::string file, unsigned line, Instruction **GoalInstptr)
+BasicBlock* EDSearcher::FindTarget(Executor &executor, std::string file, unsigned line, Instruction **GoalInstptr)
 {
 	llvm::Module *M = executor.kmodule->module;
     klee::KModule *km = executor.kmodule;
@@ -1017,7 +1017,7 @@ void EDSearcher::Init(std::string defectFile)
 	}*/
 	
 	//refactor to on func
-	BasicBlock *rootBB = GetMainBB();
+	BasicBlock *rootBB = GetMainBB(M);
 	std::vector<BasicBlock *> bbpath;
 	std::vector<unsigned> lines;
 	for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)

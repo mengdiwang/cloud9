@@ -218,6 +218,10 @@ namespace klee {
 	  void GetInitEDStr(std::vector<BasicBlock*> &bbpath, BasicBlock *bb, std::string &InitStr);
 	  //void BuildGraph();
 	  void findEDofSingleBB(BasicBlock *frontB, std::string &str);
+	  void BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG,
+	  				std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > &CallBlockMap,
+	  				std::set<BasicBlock *> &isCallsite);
+	  BasicBlock *FindTarget(Executor &executor, std::string file, unsigned line, Instruction **GoalInstptr);
 
   public:
 	  EDSearcher(Executor &_executor, std::string cefile);
