@@ -794,7 +794,10 @@ std::string CEKSearcher::getBBName(Vertex v)
 	return res;
 }
 
+//------------------------------------//
 //------------EDSearcher--------------//
+//------------------------------------//
+
 EDSearcher::EDSearcher(Executor &_executor, std::string defectFile):executor(_executor), miss_ctr(0)
 {
 	Init(defectFile);
@@ -964,11 +967,11 @@ void EDSearcher::GetInitEDStr(std::vector<BasicBlock*> &blist, BasicBlock *tBB, 
 				BasicBlock *trueBB = brInst->getSuccessor(0);
 				BasicBlock *falseBB = brInst->getSuccessor(1);
 				Instruction *inst = dyn_cast<Instruction>(brInst);
-				if(bbset.count(trueBB) && !bbset.count(falseBB))
+				if(bbset.count(trueBB))
 				{
 					str+="1";
 				}
-				else if(bbset.count(falseBB) && !bbset.count(trueBB))
+				else if(bbset.count(falseBB))
 				{
 					str+="0";
 				}
@@ -982,9 +985,6 @@ void EDSearcher::findEDofSingleBB(BasicBlock *targetB, std::string &str)
 {
 	if(targetB == NULL)
 		return;
-
-
-
 }
 
 void EDSearcher::Init(std::string defectFile)
