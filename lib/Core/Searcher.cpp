@@ -237,6 +237,13 @@ void /*CEKSearcher::*/getDefectList(std::string docname, defectList *res)
     fin.close();
 }
 
+bool CEKSearcher::InWhiteList(llvm::Function* fit, std::string stdname)
+{
+	inst_iterator it = inst_begin(fit);
+	llvm::Instruction *i = &*it;
+	std::string retname = extractfilename(executor.kmodule->infos->getInfo(i).file);
+	return (retname == stdname);
+}
 //-------------------------------------//
 //-------------CEKSearcher-------------//
 //-------------------------------------//
@@ -257,6 +264,10 @@ void CEKSearcher::Init(std::string defectFile)
         return;
     }
     
+    /*
+     * statics of blocks
+     */
+    /*
 	for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
 	{
 		int count = 0;
@@ -266,10 +277,13 @@ void CEKSearcher::Init(std::string defectFile)
 		}
 		std::cerr << count << " blocks in function " << fit->getName().str() << "\n";
 	}
+	*/
 
     TCList ceList;
     std::vector<Vertex> path;
     
+    /*
+     * move inside the loops to build graph guide with filename
     BuildGraph();
     
     BasicBlock *rootBB = NULL;
@@ -288,6 +302,8 @@ void CEKSearcher::Init(std::string defectFile)
     		}
     	}
     }
+    */
+
 
     std::vector<unsigned>lines;
     std::vector<BasicBlock *> bbpath;
@@ -299,12 +315,37 @@ void CEKSearcher::Init(std::string defectFile)
         lines = dit->second;
         BasicBlock *bb = NULL;
 		std::cerr << "size of list to find:" << lines.size() << "\n";
+
+		BuildGraph(file);
+
+		BasicBlock *rootBB = NULL;
+		for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+		{
+			if(fit->getName().str()=="main")
+			{
+				if(rootBB!=NULL)
+				{
+					std::cerr <<"Multi main\n";
+				}
+				else
+				{
+					std::cerr << "get the main\n";
+					rootBB = &(fit->getEntryBlock());
+				}
+			}
+		}
+
+
         for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
         {
             std::cerr << "Looking for '" << file << "'(" << *lit << ")\n";
             for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
             {
-                bb = FindTarget(file, *lit);
+            	//TODO 5/13 add skip outerfunction
+            	if(!InWhiteList(fit, file))
+            		continue;
+
+            	bb = FindTarget(file, *lit);
                 if(bb == NULL)
                 {
                 	std::cerr << "target:" << file << "'(" << *lit << ")Not find\n";
@@ -383,7 +424,7 @@ ExecutionState &CEKSearcher::selectState() {
 
 	while(!n->data)
 	{
-passedSet.insert(n);
+		passedSet.insert(n);
 		if(!n->left)
 		{
 			std::cerr << "Only right ";
@@ -640,7 +681,7 @@ void CEKSearcher::addBBEdges(BasicBlock *BB)
     }
 }
 
-void CEKSearcher::BuildGraph()
+void CEKSearcher::BuildGraph(std::string file)
 {
 	llvm::Module *M = executor.kmodule->module;
 
@@ -661,6 +702,11 @@ void CEKSearcher::BuildGraph()
     
 	for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
     {
+		//TODO add skip outer function
+		if(!InWhiteList(fit, file))
+			continue;
+
+
         boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
         
 		Function *F = fit;
@@ -686,7 +732,10 @@ void CEKSearcher::BuildGraph()
                     continue;
                 if(f->empty())
                     continue;
-            
+                //avoid call the function out of the file
+                if(!InWhiteList(f, file))
+                	continue;
+
                 BasicBlock *callerBB = i->getParent();
                 Function::iterator cBBit = &f->getEntryBlock();
                 BasicBlock *calleeBB = &*cBBit;

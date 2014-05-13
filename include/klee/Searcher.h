@@ -161,7 +161,7 @@ namespace klee {
     std::map<BasicBlock*, Vertex> bbMap;
       
     BasicBlock *FindTarget(std::string file, unsigned line);
-    void BuildGraph();
+    void BuildGraph(std::string file);
     //void getDefectList(std::string docname, defectList *res);
     void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList);
     void findCEofSingleBB(BasicBlock *targetB, TCList &ceList);
@@ -172,6 +172,8 @@ namespace klee {
 
 	std::string getBBName(Vertex v);
 	void PrintDotGraph();
+	bool InWhiteList(llvm::Function *fit, std::string stdname);
+
     //bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b);
 
 	struct my_bb_label_writer
@@ -224,6 +226,7 @@ namespace klee {
 	  				std::set<BasicBlock *> &isCallsite);
 	  BasicBlock *FindTarget(Executor &executor, std::string file, unsigned line, Instruction **GoalInstptr);
 	  std::string getBBName(Vertex v);
+	  bool InBlackList(llvm::Function *fit, std::string stdname);
 
   public:
 	  EDSearcher(Executor &_executor, std::string cefile);
