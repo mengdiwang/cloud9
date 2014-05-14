@@ -88,7 +88,7 @@ unsigned EDCompute(std::string tocmp, std::string stdstr)
 
 	size_t m = tocmp.length();
 	size_t n = stdstr.length();
-	n = m //TODO ???
+	n = m; //TODO ???
 
 	for(size_t i=0; i<=m; i++)
 	{
