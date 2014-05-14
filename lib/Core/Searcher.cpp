@@ -242,7 +242,9 @@ bool CEKSearcher::InWhiteList(llvm::Function* fit, std::string stdname)
 	inst_iterator it = inst_begin(fit);
 	llvm::Instruction *i = &*it;
 	std::string retname = extractfilename(executor.kmodule->infos->getInfo(i).file);
-	return (retname == stdname);
+	std::string stdfname = extractfilename(stdname);	
+	std::cerr << retname << " " << stdfname << "\n";
+	return (retname == stdfname);
 }
 //-------------------------------------//
 //-------------CEKSearcher-------------//
