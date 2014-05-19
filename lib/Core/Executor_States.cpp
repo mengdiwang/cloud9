@@ -615,9 +615,9 @@ void Executor::stepInState(ExecutionState *state) {
       << " through state " << state << " Src: " << state->pc()->info->file
       << " Line: " << state->pc()->info->line << "\n";
 
-  std::cerr << "Executing instruction: " << state->pc()->info->assemblyLine
-       << " through state " << state << " Src: " << state->pc()->info->file
-       << " Line: " << state->pc()->info->line << "\n";
+  //std::cerr << "Executing instruction: " << state->pc()->info->assemblyLine
+  //     << " through state " << state << " Src: " << state->pc()->info->file
+  //     << " Line: " << state->pc()->info->line << "\n";
 
   resetTimers();
 
@@ -676,13 +676,13 @@ void Executor::stepInState(ExecutionState *state) {
 
 void Executor::run(ExecutionState &initialState) {
 
-  std::cerr << "init searcher\n";
+  //std::cerr << "init searcher\n";
   searcher = initSearcher(NULL);
 
-  std::cerr << "update\n";
+  //std::cerr << "update\n";
   searcher->update(0, states, std::set<ExecutionState*>());
 
-  std::cerr << "while loop\n";
+  //std::cerr << "while loop\n";
   while (!states.empty() && !haltExecution) {
 	  //std::cerr << "select state\n";
 	  ExecutionState &state = searcher->selectState();

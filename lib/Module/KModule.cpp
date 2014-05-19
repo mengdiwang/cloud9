@@ -394,8 +394,8 @@ void KModule::prepare(const Interpreter::ModuleOptions &opts,
 
   //wmd
 
-  std::cerr<<"KModule prepare run cpath\n";
-  Pass *CEP = createCEPass(&cepaths, "defectList.txt");
+  //std::cerr<<"KModule prepare run cpath\n";
+  //Pass *CEP = createCEPass(&cepaths, "defectList.txt");
   
   pm.add(createLowerAtomicPass());
   pm.add(new RaiseAsmPass());
@@ -409,7 +409,7 @@ void KModule::prepare(const Interpreter::ModuleOptions &opts,
   pm.add(new ThrowCleanerPass());
   pm.add(createPruneEHPass());
 
-  pm.add(CEP);//wmd add here before simplification
+  //pm.add(CEP);//wmd add here before simplification
 
   pm.add(createInstructionCombiningPass());
   pm.add(createCFGSimplificationPass());

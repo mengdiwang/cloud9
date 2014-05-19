@@ -215,13 +215,14 @@ namespace klee {
 	  llvm::Instruction *GoalInst;
 	  std::string InitStr;
   private:
+	  bool InWhiteList(llvm::Function* fit, std::string stdname);
 	  void Init(std::string defectFile);
 	  BasicBlock* getBB(Vertex v);
 	  void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, std::string &initList);
 	  void GetInitEDStr(std::vector<BasicBlock*> &bbpath, BasicBlock *bb, std::string &InitStr);
 	  //void BuildGraph();
 	  void findEDofSingleBB(BasicBlock *frontB, std::string &str);
-	  void BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG,
+	  void BuildGraph(std::string file, Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG,
 	  				std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > &CallBlockMap,
 	  				std::set<BasicBlock *> &isCallsite);
 	  BasicBlock *FindTarget(Executor &executor, std::string file, unsigned line, Instruction **GoalInstptr);

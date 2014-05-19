@@ -243,8 +243,13 @@ bool CEKSearcher::InWhiteList(llvm::Function* fit, std::string stdname)
 	llvm::Instruction *i = &*it;
 	std::string retname = extractfilename(executor.kmodule->infos->getInfo(i).file);
 	std::string stdfname = extractfilename(stdname);	
-	std::cerr << retname << " " << stdfname << "\n";
-	return (retname == stdfname);
+	if(retname==stdfname)
+	{
+		//std::cerr << "Reach the file " << stdfname << "!\n";
+		return true;	
+	}
+	return false;
+//	return (retname == stdfname);
 }
 //-------------------------------------//
 //-------------CEKSearcher-------------//
@@ -337,30 +342,23 @@ void CEKSearcher::Init(std::string defectFile)
 			}
 		}
 
+		if(rootBB == NULL)
+		{
+			std::cerr << "No main found\n";
+			continue;
+		}
 
         for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
         {
             std::cerr << "Looking for '" << file << "'(" << *lit << ")\n";
-            for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
-            {
-            	//TODO 5/13 add skip outerfunction
-            	if(!InWhiteList(fit, file))
-            		continue;
 
-            	bb = FindTarget(file, *lit);
-                if(bb == NULL)
-                {
-                	std::cerr << "target:" << file << "'(" << *lit << ")Not find\n";
-                    continue;
-                }
-				else
-				{
-					break;
-				}
-            }
+            bb = FindTarget(file, *lit);
             
-            if(bb == NULL || rootBB == NULL)
+            if(bb == NULL)
+			{
+				std::cerr << "No target function found\n";
                 continue;
+			}
 
             std::cerr << "inter-Blocks Dijkstra\n";
             //interprocedural
@@ -429,11 +427,11 @@ ExecutionState &CEKSearcher::selectState() {
 		passedSet.insert(n);
 		if(!n->left)
 		{
-			std::cerr << "Only right ";
+			//std::cerr << "Only right ";
 			n = n->right;
 			if(cecanuse && n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
-				std::cerr << "in ce";
+				//std::cerr << "in ce";
 				if(cecanuse)
 				{
 					TChoiceItem *ci = &*tcit;
@@ -441,30 +439,30 @@ ExecutionState &CEKSearcher::selectState() {
 				}
 				cereach ++;
 			}
-			std::cerr << "\n";
+			//std::cerr << "\n";
 		}
 		else if(!n->right)
 		{
-			std::cerr << "Only left ";
+			//std::cerr << "Only left ";
 			n = n->left;
 			if(cecanuse && n->data && (tcit->chosenInst == n->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
-				std::cerr << "in ce";
+				//std::cerr << "in ce";
 				TChoiceItem *ci = &*tcit;
 				ceStateMap[ci] = true;
 				cereach ++;
 			}
-			std::cerr << "\n";
+			//std::cerr << "\n";
 		}
 		else
 		{
-			std::cerr << "Bichild:";
+			//std::cerr << "Bichild:";
 			if(cecanuse && n->left->data && (tcit->chosenInst == n->left->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
 				//got and will exit the loop
-				std::cerr << "left in ce";
+				//std::cerr << "left in ce";
 				forbitSet.insert(n->right);
 				n = n->left;
 				TChoiceItem *ci = &*tcit;
@@ -475,7 +473,7 @@ ExecutionState &CEKSearcher::selectState() {
 			else if(cecanuse && n->right->data && (tcit->chosenInst == n->right->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
-				std::cerr << "right in ce";
+				//std::cerr << "right in ce";
 				forbitSet.insert(n->left);
 				n = n->right;
 				TChoiceItem *ci = &*tcit;
@@ -488,16 +486,16 @@ ExecutionState &CEKSearcher::selectState() {
 				if(forbitSet.count(n->left)>0)
 				{
 					n = n->right;
-					std::cerr << "right non neg";
+					//std::cerr << "right non neg";
 				}
 				else if(forbitSet.count(n->right)>0)
 				{
 					n = n->left;
-					std::cerr << "left non neg";
+					//std::cerr << "left non neg";
 				}
 				else
 				{
-					std::cerr << " random";
+					//std::cerr << " random";
 					if(bits == 0)
 					{
 						flips = theRNG.getInt32();
@@ -507,14 +505,16 @@ ExecutionState &CEKSearcher::selectState() {
 					n = (flips & (1<<bits)) ? n->left : n->right;
 				}
 			}
-			std::cerr << "\n";
-			std::cerr << std::flush;
+			//std::cerr << "\n";
+			//std::cerr << std::flush;
 		}
 	}
 
 	if(cereach>0)
+	{	
 		std::cerr << "{Encounter " << cereach << " edges}\n";
-	std::cerr << "Passed " << passedSet.size() << " Node in all\n";
+		std::cerr << "Passed " << passedSet.size() << " Node in all\n";
+	}
 	return *n->data;
   //return *states.back();
 }
@@ -640,30 +640,46 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
 	llvm::Module *M = executor.kmodule->module;
     klee::KModule *km = executor.kmodule;
     BasicBlock *bb = NULL;
+	int offset = 1000;
 
-    unsigned linenolow = 0;
     for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
-    {
-    	//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
+    {    
+		//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
     	//for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
         for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
         {
-        	unsigned lineno= km->infos->getInfo(&*it).line;
+			unsigned linenolow = 0;        
+			unsigned lineno= km->infos->getInfo(&*it).line;
 			std::string filename = km->infos->getInfo(&*it).file;
-        	std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
-        	if(line > linenolow && line <= lineno && filename == file)//change to range search
+
+			std::string instfname = extractfilename(filename);
+			std::string stdfname = extractfilename(file);	
+
+			if(instfname != stdfname)
+				break;
+        	//std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
+			//std::cerr << "reach:'" << filename << "(" << instfname << ")'(" << linenolow << "," << lineno << ")\n";
+        	if(line > linenolow && line <= lineno && instfname == stdfname)//change to range search
 			//if(lineno == line && filename == file)
         	{
-        		if(line != lineno)
-        			std::cerr << "Approximately ";
-        		std::cerr << "find the target\n";
-        		bb = &*it->getParent();
-        		GoalInst = &*it;
-        		return bb;
+        		int offr = (int)line-(int)lineno;
+				int off = (offr>=0)? offr: -offr;
+				if(off < offset)
+				{  		
+					//if(line != lineno)
+        			//	std::cerr << "Approximately ";
+					//std::cerr << "find the target\n";
+        			bb = &*it->getParent();
+        			GoalInst = &*it;
+					offset = off;				
+				}
+        		
+				//return bb;
         	}
         	linenolow = lineno;
         }
     }
+	std::cerr << "offset:" << offset << "\n";
     return bb;
 }
 
@@ -675,7 +691,7 @@ void CEKSearcher::addBBEdges(BasicBlock *BB)
     
     for(succ_iterator si = succ_begin(BB); si!=succ_end(BB); ++si)
     {
-		std::cerr << "add block\n";
+				//std::cerr << "add block\n";
         boost::tie(e, inserted) = add_edge(bbMap[BB], bbMap[*si], bbG);
         if(inserted)
             addBBEdges(*si);
@@ -689,9 +705,11 @@ void CEKSearcher::BuildGraph(std::string file)
 
     for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
     {
+		if(!InWhiteList(fit, file))
+			continue;
         Function *F = fit;
         //funcMap[F] = add_vertex(funcG);
-		std::cerr << "Add block in the function " << F->getName().str() << "\n";
+				//std::cerr << "Add block in the function " << F->getName().str() << "\n";
         for(Function::iterator bbit = F->begin(), bb_ie=F->end(); bbit != bb_ie; ++bbit)
         {
             BasicBlock *BB = bbit;
@@ -708,24 +726,23 @@ void CEKSearcher::BuildGraph(std::string file)
 		if(!InWhiteList(fit, file))
 			continue;
 
-
         boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
         
 		Function *F = fit;
 		if(!F->empty())
 		{
-			std::cerr << "add unempty function:" << F->getName().str() << "\n";
-		    BasicBlock *BB = &F->getEntryBlock();
-			addBBEdges(BB);
+				//std::cerr << "add unempty function:" << F->getName().str() << "\n";
+		    	BasicBlock *BB = &F->getEntryBlock();
+				addBBEdges(BB);
 		}
 		
         for(inst_iterator it = inst_begin(fit), ie = inst_end(fit); it!=ie; ++it)
         {
             llvm::Instruction *i = &*it;
-			std::cerr << "reach inst:" <<executor.kmodule->infos->getInfo(i).line << "in file " << extractfilename(executor.kmodule->infos->getInfo(i).file) << "\n";
+			//std::cerr << "reach inst:" <<executor.kmodule->infos->getInfo(i).line << " in file " << extractfilename(executor.kmodule->infos->getInfo(i).file) << "\n";
             if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
             {
-				std::cerr << "get caller instruction\n";
+				//std::cerr << "get caller instruction\n";
                 
                 CallSite cs(i);
                 Function *f = cs.getCalledFunction();
@@ -748,7 +765,7 @@ void CEKSearcher::BuildGraph(std::string file)
                 bbWeightmap[e] = 1;
                 
                 CallBlockMap[std::make_pair(fit, f)].push_back(callerBB);
-				std::cerr << "function:" << fit->getName().str()  << " call function:" << f->getName().str()<<"\n";
+				//std::cerr << "function:" << fit->getName().str()  << " call function:" << f->getName().str()<<"\n";
                 if(!isCallsite.count(callerBB))
                     isCallsite.insert(callerBB);
                 
@@ -910,6 +927,21 @@ EDSearcher::EDSearcher(Executor &_executor, std::string defectFile):executor(_ex
 	Init(defectFile);
 }
 
+bool EDSearcher::InWhiteList(llvm::Function* fit, std::string stdname)
+{
+	inst_iterator it = inst_begin(fit);
+	llvm::Instruction *i = &*it;
+	std::string retname = extractfilename(executor.kmodule->infos->getInfo(i).file);
+	std::string stdfname = extractfilename(stdname);	
+	if(retname==stdfname)
+	{
+		std::cerr << "Reach the file " << stdfname << "!\n";
+		return true;	
+	}
+	return false;
+//	return (retname == stdfname);
+}
+
 ExecutionState& EDSearcher::selectState()
 {
 	unsigned flips = 0, bits = 0;
@@ -924,13 +956,13 @@ ExecutionState& EDSearcher::selectState()
 		if(!n->left)
 		{
 			path += "0";
-			std::cerr << "Only right\n";
+			//std::cerr << "Only right\n";
 			n = n->right;
 		}
 		else if(!n->right)
 		{
 			path += "1";
-			std::cerr << "Only left\n";
+			//std::cerr << "Only left\n";
 			n = n->left;
 		}
 		else
@@ -955,22 +987,22 @@ ExecutionState& EDSearcher::selectState()
 				fval = EDCompute(tmpf, InitStr);
 				strmap.insert(std::make_pair(tmpf, fval));
 			}
-			std::cerr << "right path:" << tmpt << " " << tval << " left path:" << tmpf << " " <<fval << "\n";
+			//std::cerr << "right path:" << tmpt << " " << tval << " left path:" << tmpf << " " <<fval << "\n";
 			if(tval<fval)
 			{
-				std::cerr << "ed right\n";
+				//std::cerr << "ed right\n";
 				n = n->right;
 				path += "1";			
 			}
 			else if(tval>fval)
 			{
-				std::cerr << "ed left\n";
+				//std::cerr << "ed left\n";
 				n = n->left;
 				path += "0";
 			}
 			else
 			{
-				std::cerr << "random\n"; 
+				//std::cerr << "random\n"; 
 				if(bits==0)
 				{
 					flips = theRNG.getInt32();
@@ -1036,7 +1068,7 @@ BasicBlock *EDSearcher::getBB(Vertex v)
     return NULL;
 }
 
-void EDSearcher::BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG,
+void EDSearcher::BuildGraph(std::string file, Executor &executor, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG,
 				std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > &CallBlockMap,
 				std::set<BasicBlock *> &isCallsite)
 {
@@ -1044,8 +1076,10 @@ void EDSearcher::BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &b
 
     for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
     {
+		if(!InWhiteList(fit, file))
+			continue;
         Function *F = fit;
-        std::cerr << "Add block in the function " << F->getName().str() << "\n";
+        //std::cerr << "Add block in the function " << F->getName().str() << "\n";
         for(Function::iterator bbit = F->begin(), bb_ie=F->end(); bbit != bb_ie; ++bbit)
         {
             BasicBlock *BB = bbit;
@@ -1058,23 +1092,25 @@ void EDSearcher::BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &b
 
 	for(Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
     {
+		if(!InWhiteList(fit, file))
+			continue;
         boost::graph_traits<Graph>::edge_descriptor e;bool inserted;
 
 		Function *F = fit;
 		if(!F->empty())
 		{
-			std::cerr << "add unempty function:" << F->getName().str() << "\n";
+				//std::cerr << "add unempty function:" << F->getName().str() << "\n";
 		    BasicBlock *BB = &F->getEntryBlock();
-			addBBEdges(BB, bbMap, bbG);
+				addBBEdges(BB, bbMap, bbG);
 		}
 
         for(inst_iterator it = inst_begin(fit), ie = inst_end(fit); it!=ie; ++it)
         {
             llvm::Instruction *i = &*it;
-			std::cerr << "reach inst:" <<executor.kmodule->infos->getInfo(i).line << "in file " << extractfilename(executor.kmodule->infos->getInfo(i).file) << "\n";
+						//std::cerr << "reach inst:" <<executor.kmodule->infos->getInfo(i).line << "in file " << extractfilename(executor.kmodule->infos->getInfo(i).file) << "\n";
             if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
             {
-				std::cerr << "get caller instruction\n";
+								//std::cerr << "get caller instruction\n";
 
                 CallSite cs(i);
                 Function *f = cs.getCalledFunction();
@@ -1083,6 +1119,9 @@ void EDSearcher::BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &b
                     continue;
                 if(f->empty())
                     continue;
+                //avoid call the function out of the file
+                if(!InWhiteList(f, file))
+                	continue;
 
                 BasicBlock *callerBB = i->getParent();
                 Function::iterator cBBit = &f->getEntryBlock();
@@ -1094,7 +1133,7 @@ void EDSearcher::BuildGraph(Executor &executor, std::map<BasicBlock*, Vertex> &b
                 bbWeightmap[e] = 1;
 
                 CallBlockMap[std::make_pair(fit, f)].push_back(callerBB);
-				std::cerr << "function:" << fit->getName().str()  << " call function:" << f->getName().str()<<"\n";
+								//std::cerr << "function:" << fit->getName().str()  << " call function:" << f->getName().str()<<"\n";
                 if(!isCallsite.count(callerBB))
                     isCallsite.insert(callerBB);
 
@@ -1109,8 +1148,9 @@ BasicBlock* EDSearcher::FindTarget(Executor &executor, std::string file, unsigne
 	llvm::Module *M = executor.kmodule->module;
     klee::KModule *km = executor.kmodule;
     BasicBlock *bb = NULL;
-
+	int offset = 1000;
     unsigned linenolow = 0;
+
     for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
     {
     	//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
@@ -1119,20 +1159,34 @@ BasicBlock* EDSearcher::FindTarget(Executor &executor, std::string file, unsigne
         {
         	unsigned lineno= km->infos->getInfo(&*it).line;
 			std::string filename = km->infos->getInfo(&*it).file;
-        	std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
-        	if(line > linenolow && line <= lineno && filename == file)//change to range search
-			//if(lineno == line && filename == file)
+
+			std::string instfname = extractfilename(filename);
+			std::string stdfname = extractfilename(file);	
+
+			if(instfname != stdfname)
+				break;        	
+
+			std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
+        	if(line > linenolow && line <= lineno && instfname == stdfname)//change to range search
+					//if(lineno == line && filename == file)
         	{
-        		if(line != lineno)
-        			std::cerr << "Approximately ";
-        		std::cerr << "find the target\n";
-        		bb = &*it->getParent();
-        		*GoalInstptr = &*it;
-        		return bb;
+
+				int offr = (int)line-(int)lineno;
+				int off = (offr>=0)? offr: -offr;
+				if(off < offset)
+				{  		
+					//if(line != lineno)
+        			//	std::cerr << "Approximately ";
+					//std::cerr << "find the target\n";
+        			bb = &*it->getParent();
+        			*GoalInstptr = &*it;
+					offset = off;				
+				}
         	}
         	linenolow = lineno;
         }
     }
+	std::cerr << "offset:" << offset << "\n";
     return bb;
 }
 
@@ -1223,8 +1277,9 @@ void EDSearcher::Init(std::string defectFile)
 		return;
 	}
 	
+
     std::vector<Vertex> path;
-	BuildGraph(executor, bbMap, bbG, CallBlockMap, isCallsite);
+	
 	/*
 	for(llvm::Module::iterator fit->M->begin(); fit!=M->end(); ++fit)
 	{
@@ -1244,24 +1299,16 @@ void EDSearcher::Init(std::string defectFile)
 	{
 		std::string file = dit->first;
 		lines = dit->second;
+
+		BuildGraph(file, executor, bbMap, bbG, CallBlockMap, isCallsite);
+
 		BasicBlock *bb = NULL;
 		for(std::vector<unsigned>::iterator lit=lines.begin();
 				lit!=lines.end(); ++lit)
 		{
+
 			std::cerr << "Looking for '" << file << "'(" << *lit << ")\n";
-			for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
-			{
-				bb = FindTarget(executor, file, *lit, &GoalInst);
-			    if(bb == NULL)
-				{
-					std::cerr << "target:" << file << "'(" << *lit << ") Not find\n";
-					continue;
-				}
-				else
-				{
-					break;
-				}		
-			}
+			bb = FindTarget(executor, file, *lit, &GoalInst);
 			
 			if(bb == NULL || rootBB == NULL)
 				continue;
@@ -1275,7 +1322,7 @@ void EDSearcher::Init(std::string defectFile)
 			for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
 			{
 				tmpb = getBB(*it);
-				std::cerr << getBBName(*it) << "\n";
+				//std::cerr << getBBName(*it) << "\n";
 				if(tmpb != NULL)
 					bbpath.push_back(tmpb);
 			}
