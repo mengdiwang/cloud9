@@ -218,6 +218,23 @@ public:
     virtual ~WeightedRandomStrategy();
 };
 
+//WMD 20140604
+class CEKStrategy:public KleeStrategy
+{
+public:
+	CEKStrategy(WorkerTree *_tree, SymbolicEngine *_engine, std::string cekfile);
+	virtual ~CEKStrategy();
+};
+
+class EDStrategy:public KleeStrategy
+{
+public:
+	EDStrategy(WorkerTree *_tree, SymbolicEngine *_engine, std::string edfile);
+	virtual ~EDStrategy();
+};
+//~
+
+
 class LimitedFlowStrategy: public StateSelectionStrategy {
 private:
   StateSelectionStrategy *underStrat;

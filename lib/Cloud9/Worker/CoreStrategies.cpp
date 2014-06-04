@@ -314,7 +314,29 @@ WeightedRandomStrategy::~WeightedRandomStrategy() {
     delete searcher;
 }
 
+//WMD 20140604
+CEKStrategy::CEKStrategy(WorkerTree *_tree, SymbolicEngine *_engine, std::string cekfile) : KleeStrategy(_tree)
+{
+	klee::Executor *executor = dynamic_cast<klee::Executor*>(_engine);
+	searcher = new CEKSearcher(*executor, cekfile);
+}
 
+CEKStrategy::~CEKStrategy()
+{
+	delete searcher;
+}
+
+EDStrategy::EDStrategy(WorkerTree *_tree, SymbolicEngine *_engine, std::string edfile) : KleeStrategy(_tree)
+{
+	klee::Executor *executor = dynamic_cast<klee::Executor*>(_engine);
+	searcher = new EDSearcher(*executor, edfile);
+}
+
+EDStrategy::~EDStrategy()
+{
+	delete searcher;
+}
+//~
 }
 
 }
