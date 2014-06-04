@@ -82,6 +82,11 @@ private:
   void initStrategy();
 
   StateSelectionStrategy *createCoverageOptimizedStrat(StateSelectionStrategy *base);
+  //wmd
+  StateSelectionStrategy *createCEKStrat(StateSelectionStrategy *base, std::string file);
+  StateSelectionStrategy *createEDStrat(StateSelectionStrategy *base, std::string file);
+
+  //~
   OracleStrategy *createOracleStrategy();
 
   void initRootState(llvm::Function *f, int argc, char **argv, char **envp);

@@ -106,6 +106,9 @@ cl::opt<bool> StratCovOpt("c9-job-cov-opt", cl::desc("Use coverage optimized job
 cl::opt<bool> StratOracle("c9-job-oracle", cl::desc("Use the almighty oracle"));
 cl::opt<bool> StratFaultInj("c9-job-fault-inj", cl::desc("Use fault injection"));
 cl::opt<bool> StratLimitedFlow("c9-job-lim-flow", cl::desc("Use limited states flow"));
+//wmd
+cl::opt<std::string> StratCEKInput("c9-cek-line", cl::desc("cek line file"));
+cl::opt<std::string> StratEDInput("c9-ed-line", cl::desc("ed line file"));
 
 // Partition-based strategies
 cl::opt<bool> StratEntropy("c9-job-entropy", cl::desc("Use entropy search"));
@@ -170,6 +173,28 @@ StateSelectionStrategy *JobManager::createCoverageOptimizedStrat(StateSelectionS
   strategies.push_back(base);
   return new TimeMultiplexedStrategy(strategies);
 }
+
+//Merge with cek
+StateSelectionStrategy *JobManager::createCEKStrat(StateSelectionStrategy *base, std::string file) {
+  std::vector<StateSelectionStrategy*> strategies;
+
+  strategies.push_back(new CEKStrategy(
+         tree,
+         symbEngine, file));
+  strategies.push_back(base);
+  return new TimeMultiplexedStrategy(strategies);
+}
+
+//Merge with ED
+StateSelectionStrategy *JobManager::createEDStrat(StateSelectionStrategy *base, std::string file) {
+  std::vector<StateSelectionStrategy*> strategies;
+  strategies.push_back(new EDStrategy(
+         tree,
+         symbEngine, file));
+  strategies.push_back(base);
+  return new TimeMultiplexedStrategy(strategies);
+}
+
 
 bool JobManager::isJob(WorkerTree::Node *node) {
   return (**node).getJob() != NULL;
@@ -446,7 +471,21 @@ StateSelectionStrategy *JobManager::createBaseStrategy() {
       stateStrat = new ClusteredRandomPathStrategy(tree);
     else
       stateStrat = new RandomPathStrategy(tree);
-  } else {
+  }
+  //wmd
+  if(StratCEKInput != "")
+  {
+	  stateStrat = new CEKStrategy(tree,
+		         symbEngine, StratCEKInput);
+  }
+  else if(StratEDInput !="")
+  {
+	  stateStrat = new EDStrategy(tree,
+		         symbEngine, StratEDInput);
+  }
+  //~
+
+  else {
 	  LOG(INFO) << "RANDOM Strategy";
     stateStrat = new RandomStrategy();
   }
