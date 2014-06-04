@@ -25,7 +25,6 @@ namespace llvm {
   class Instruction;
   class Module;
   class TargetData;
-  struct TCeItem;
 }
 
 namespace klee {
@@ -111,8 +110,7 @@ namespace klee {
     Cell *constantTable;
 
     //wmd
-    typedef std::vector<llvm::TCeItem> TceList;
-    std::vector<TceList> cepaths;
+    //std::vector<TceList> cepaths;
 
   private:
     typedef std::pair<std::string, int> program_point_t;
