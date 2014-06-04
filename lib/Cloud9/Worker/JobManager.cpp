@@ -439,6 +439,7 @@ void JobManager::initRootState(llvm::Function *f, int argc, char **argv,
 StateSelectionStrategy *JobManager::createBaseStrategy() {
   // Step 1: Compose the basic strategy
   StateSelectionStrategy *stateStrat = NULL;
+  LOG(INFO)<< "!!!!!!Select STRATEGY";
 
   if (StratRandomPath) {
     if (StratEntropy || StratUniformLocation)
@@ -446,6 +447,7 @@ StateSelectionStrategy *JobManager::createBaseStrategy() {
     else
       stateStrat = new RandomPathStrategy(tree);
   } else {
+	  LOG(INFO) << "RANDOM Strategy";
     stateStrat = new RandomStrategy();
   }
 
