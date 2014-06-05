@@ -475,11 +475,13 @@ StateSelectionStrategy *JobManager::createBaseStrategy() {
   //wmd
   if(StratCEKInput != "")
   {
+	  LOG(INFO) << "CEK strategy";
 	  stateStrat = new CEKStrategy(tree,
 		         symbEngine, StratCEKInput);
   }
   else if(StratEDInput !="")
   {
+	  LOG(INFO) << "ED strategy";
 	  stateStrat = new EDStrategy(tree,
 		         symbEngine, StratEDInput);
   }
