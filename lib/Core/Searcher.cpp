@@ -526,8 +526,10 @@ void CEKSearcher::update(ExecutionState *current,
 	if(current && current->pc()->inst == GoalInst)
 	{
 		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
-		executor.setHaltExecution(true);
+		states.clear();
 
+		executor.setHaltExecution(true);
+		return;
 	}
   states.insert(states.end(),
                 addedStates.begin(),
@@ -1034,7 +1036,10 @@ void EDSearcher::update(ExecutionState *current,const std::set<ExecutionState*> 
 	if(current && current->pc()->inst == GoalInst)
 	{
 		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
+		states.clear();
+
 		executor.setHaltExecution(true);
+		return;
 
 	}
 	states.insert(states.end(),
