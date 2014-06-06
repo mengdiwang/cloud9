@@ -257,6 +257,7 @@ bool CEKSearcher::InWhiteList(llvm::Function* fit, std::string stdname)
 
 void CEKSearcher::Init(std::string defectFile)
 {
+	reachgoal = false;
     llvm::Module *M = executor.kmodule->module;
     //klee::KModule *km = executor.kmodule;
     cepaths.clear();
@@ -525,15 +526,17 @@ void CEKSearcher::update(ExecutionState *current,
 
 	if(current && current->pc()->inst == GoalInst)
 	{
+
+		LOG(INFO) << "REACH TARGET";
 		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
 		states.clear();
-
+		reachgoal = true;
 		executor.setHaltExecution(true);
 		return;
 	}
 
 	//wmd
-	if(states.size() == 0)
+	if(reachgoal == true)
 		return;
 
 	states.insert(states.end(),
@@ -1040,6 +1043,8 @@ void EDSearcher::update(ExecutionState *current,const std::set<ExecutionState*> 
 
 	if(current && current->pc()->inst == GoalInst)
 	{
+
+
 		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
 		states.clear();
 

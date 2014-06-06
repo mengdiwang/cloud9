@@ -140,7 +140,7 @@ namespace klee {
 
   private:
     enum BrType {FALSE=0, TRUE=1};
-
+    bool CEKSearcher;
     llvm::Instruction *GoalInst;
     std::vector<ExecutionState*> states;
     std::set<PTreeNode*> forbitSet;
