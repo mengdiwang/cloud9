@@ -61,7 +61,7 @@ class JobManager;
  */
 class JobSelectionStrategy {
 public:
-    JobSelectionStrategy() {};
+    JobSelectionStrategy() { reachgoal= false;};
     virtual ~JobSelectionStrategy() {};
 
 public:
@@ -140,7 +140,7 @@ public:
   virtual ExecutionJob* onNextJobSelection();
   virtual ExecutionJob* onNextJobSelectionEx(bool &canBatch, uint32_t &batchDest);
 
-  StateSelectionStrategy *getStateStrategy() const { return stateStrat; }
+  StateSelectionStrategy *getStateStrategy() const { return stateStrat;}
 };
 
 class RandomPathStrategy: public StateSelectionStrategy {

@@ -110,6 +110,8 @@ void RandomJobFromStateStrategy::onStateActivated(SymbolicState *state) {
 void RandomJobFromStateStrategy::onStateUpdated(SymbolicState *state,
     WorkerTree::Node *oldNode) {
   stateStrat->onStateUpdated(state, oldNode);
+  reachgoal = stateStrat->GetReachGoal();
+  LOG(INFO) << "Reach goal:" << reachgoal;
 }
 
 void RandomJobFromStateStrategy::onStateDeactivated(SymbolicState *state) {
@@ -122,7 +124,7 @@ void RandomJobFromStateStrategy::onStateStepped(SymbolicState *state) {
 
 ExecutionJob* RandomJobFromStateStrategy::onNextJobSelection() {
   SymbolicState *state = stateStrat->onNextStateSelection();
-
+  this->reachgoal = stateStrat->reachgoal;
   if (!state)
     return NULL;
 
@@ -278,6 +280,7 @@ void KleeStrategy::onStateActivated(SymbolicState *state) {
 void KleeStrategy::onStateUpdated(SymbolicState *state, WorkerTree::Node *oldNode) {
 	LOG(INFO) << "Update " << state;
     searcher->update(&(**state), std::set<klee::ExecutionState*>(), std::set<klee::ExecutionState*>());
+    reachgoal = searcher->reachgoal;
 }
 
 void KleeStrategy::onStateDeactivated(SymbolicState *state) {
