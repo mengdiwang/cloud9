@@ -665,8 +665,8 @@ ExecutionJob* JobManager::selectNextJob(boost::unique_lock<boost::mutex> &lock,
   ExecutionJob *job = selectNextJob();
   if(StratCEKInput!="" || StratEDInput!="")
   {
-	  if(job == NULL)
-		  terminationRequest = true;
+	  //if(job == NULL)
+	  //  terminationRequest = true;
   }
   else
   {
