@@ -691,7 +691,10 @@ ExecutionJob* JobManager::selectNextJob() {
   ExecutionJob *job = selStrategy->onNextJobSelection();
 
   if(selStrategy->reachgoal == true)
+  {
 	  terminationRequest = true;
+	  return job;
+  }
 
   if (!StratOracle && !StratStickyState)
     assert(job != NULL || jobCount == 0);
