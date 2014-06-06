@@ -934,6 +934,7 @@ std::string CEKSearcher::getBBName(Vertex v)
 
 EDSearcher::EDSearcher(Executor &_executor, std::string defectFile):executor(_executor), miss_ctr(0)
 {
+	reachgoal = false;
 	Init(defectFile);
 }
 
@@ -1047,7 +1048,7 @@ void EDSearcher::update(ExecutionState *current,const std::set<ExecutionState*> 
 
 		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
 		states.clear();
-
+		reachgoal =true;
 		executor.setHaltExecution(true);
 		return;
 
