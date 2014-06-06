@@ -77,6 +77,7 @@ public:
     virtual void onStateUpdated(SymbolicState *state, WorkerTree::Node *oldNode) = 0;
     virtual void onStateDeactivated(SymbolicState *state) = 0;
     virtual void onStateStepped(SymbolicState *state) = 0;
+    bool reachgoal;
 };
 
 class StateSelectionStrategy {
@@ -96,6 +97,8 @@ public:
   virtual SymbolicState* onNextStateSelectionEx(bool &canBatch, uint32_t &batchDest) {
     return onNextStateSelection();
   }
+  bool reachgoal;
+  bool GetReachGoal(){return reachgoal;}
 };
 
 class BasicStrategy : public JobSelectionStrategy {

@@ -689,6 +689,10 @@ ExecutionJob* JobManager::selectNextJob(boost::unique_lock<boost::mutex> &lock,
 
 ExecutionJob* JobManager::selectNextJob() {
   ExecutionJob *job = selStrategy->onNextJobSelection();
+
+  if(selStrategy->reachgoal == true)
+	  terminationRequest = true;
+
   if (!StratOracle && !StratStickyState)
     assert(job != NULL || jobCount == 0);
 

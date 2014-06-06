@@ -81,6 +81,9 @@ namespace klee {
       tmp.insert(es);
       update(current, std::set<ExecutionState*>(), tmp);
     }
+
+    bool reachgoal;
+    bool GetReachGoal(){return reachgoal;}
   };
     
   
@@ -140,7 +143,7 @@ namespace klee {
 
   private:
     enum BrType {FALSE=0, TRUE=1};
-    bool reachgoal;
+    //bool reachgoal;
     llvm::Instruction *GoalInst;
     std::vector<ExecutionState*> states;
     std::set<PTreeNode*> forbitSet;
