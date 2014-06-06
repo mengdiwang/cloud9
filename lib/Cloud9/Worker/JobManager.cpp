@@ -663,7 +663,7 @@ void JobManager::processLoop(bool allowGrowth, bool blocking,
 ExecutionJob* JobManager::selectNextJob(boost::unique_lock<boost::mutex> &lock,
     unsigned int timeOut) {
   ExecutionJob *job = selectNextJob();
-  if(StratCEKInput!="" || StratECInput!="")
+  if(StratCEKInput!="" || StratEDInput!="")
   {
 	  if(job == NULL)
 		  terminationRequest = true;
