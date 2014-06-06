@@ -663,7 +663,15 @@ void JobManager::processLoop(bool allowGrowth, bool blocking,
 ExecutionJob* JobManager::selectNextJob(boost::unique_lock<boost::mutex> &lock,
     unsigned int timeOut) {
   ExecutionJob *job = selectNextJob();
-  assert(job != NULL || jobCount == 0);
+  if(StratCEKInput!="" || StratECInput!="")
+  {
+	  if(job == NULL)
+		  terminationRequest = true;
+  }
+  else
+  {
+	  assert(job != NULL || jobCount == 0);
+  }
 
   while (job == NULL && !terminationRequest) {
     LOG(INFO) << "No jobs in the queue, waiting for...";
