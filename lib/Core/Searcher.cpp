@@ -531,7 +531,12 @@ void CEKSearcher::update(ExecutionState *current,
 		executor.setHaltExecution(true);
 		return;
 	}
-  states.insert(states.end(),
+
+	//wmd
+	if(states.size() == 0)
+		return;
+
+	states.insert(states.end(),
                 addedStates.begin(),
                 addedStates.end());
 	int count_ce = 0;
@@ -1042,6 +1047,10 @@ void EDSearcher::update(ExecutionState *current,const std::set<ExecutionState*> 
 		return;
 
 	}
+
+	if(states.size() == 0)
+		return;
+
 	states.insert(states.end(),
 					addedStates.begin(),
 					addedStates.end());
