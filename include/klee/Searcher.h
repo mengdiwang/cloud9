@@ -152,7 +152,7 @@ namespace klee {
     bool updateWeights;
 	DiscretePDF<ExecutionState*> *qstates;
 	double getWeight(ExecutionState*);
-	std::vector<Instruction *>purnlist;
+	std::vector<Instruction *>purnlist;//TODO run SCC to remove non-target edges
 	
     std::set<PTreeNode*> forbitSet;
 	std::set<PTreeNode*> passedSet;
