@@ -137,6 +137,8 @@ namespace klee {
     	const InstructionInfo *brinfo;
     };
 	
+	
+	
   class CEKSearcher : public Searcher{
   public:
     typedef std::vector<TChoiceItem> TCList;
@@ -146,8 +148,14 @@ namespace klee {
     //bool reachgoal;
     llvm::Instruction *GoalInst;
     std::vector<ExecutionState*> states;
+	
+    bool updateWeights;
+	DiscretePDF<ExecutionState*> qstates;
+	double getWeight(ExecutionState*);
+	std::vector<Instruction *>purnlist;
+	
     std::set<PTreeNode*> forbitSet;
-		std::set<PTreeNode*> passedSet;
+	std::set<PTreeNode*> passedSet;
     //std::vector<TCList> cepaths;
     TCList cepaths;
     Executor &executor;

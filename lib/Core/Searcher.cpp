@@ -49,6 +49,7 @@
 #include <boost/graph/depth_first_search.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 
+#define TEST
 //using namespace boost;
 
 using namespace klee;
@@ -179,7 +180,6 @@ void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target, Graph
     // Put the root in the list aswell since the loop above misses that one
     if(!path->empty())
         path->insert(path->begin(), root);
-
 }
 
 void addBBEdges(BasicBlock *BB, std::map<BasicBlock*, Vertex> &bbMap, Graph &bbG)
@@ -257,6 +257,9 @@ bool CEKSearcher::InWhiteList(llvm::Function* fit, std::string stdname)
 
 void CEKSearcher::Init(std::string defectFile)
 {
+	purnlist.clear();
+	updateWeights = true; //wmd TODO to test the performance
+
 	reachgoal = false;
     llvm::Module *M = executor.kmodule->module;
     //klee::KModule *km = executor.kmodule;
@@ -407,6 +410,13 @@ CEKSearcher::CEKSearcher(Executor &_executor, std::string defectFile):executor(_
 	Init(defectFile);
 }
 
+
+#ifdef TEST
+ExecutionState &CEKSearcher::selectState() {
+  return *qstates->choose(theRNG.getDoubleL());
+}
+
+#else
 ExecutionState &CEKSearcher::selectState() {
 	unsigned flips = 0, bits = 0;
 	PTree::Node *n = executor.processTree->root;
@@ -519,7 +529,51 @@ ExecutionState &CEKSearcher::selectState() {
 	return *n->data;
   //return *states.back();
 }
+#endif
 
+
+#ifdef TEST
+void CEKSearcher::update(ExecutionState *current,
+                         const std::set<ExecutionState*> &addedStates,
+                         const std::set<ExecutionState*> &removedStates) {
+	if(current && current->pc()->inst == GoalInst)
+	{
+
+		LOG(INFO) << "REACH TARGET";
+		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
+	}	
+
+	if(current && updateWeights && !removedStates.count(current))
+		qstates->update(current, getWeight(current));
+		
+	for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
+		ie = addedStates.end(); it != ie; ++it)
+	{
+		bool found = false;
+		ExecutionState *es = *it;
+		for(std::vector<Instruction *>::const_iterator cit = purnlist.begin(),
+			cie = purnlist.end(); cit != cie; ++cit)
+		{
+			Instruction *ci = *cit;
+			if(ci == es->pc()->inst)
+			{
+				std::cerr << "reach deletepath! " << ci << "\n";
+				found = true;
+				break;
+			}
+		}
+
+		if(!found)
+			qstates->insert(es, getWeight(es));
+	}
+	
+	for(std::set<ExecutionState*>::const_iterator it = removeStates.begin(),
+		ie = removedStates.end(); it != ie; ++it)
+	{
+		qstates->remove(*it);
+	}
+}
+#else
 void CEKSearcher::update(ExecutionState *current,
                          const std::set<ExecutionState*> &addedStates,
                          const std::set<ExecutionState*> &removedStates) {
@@ -529,16 +583,18 @@ void CEKSearcher::update(ExecutionState *current,
 
 		LOG(INFO) << "REACH TARGET";
 		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
-		states.clear();
-		reachgoal = true;
-		executor.setHaltExecution(true);
-		return;
+		//states.clear();
+		//reachgoal = true;
+		//executor.setHaltExecution(true);
+		//return;
 	}
 
 	//wmd
+	/*
+	TODO:The goal should be execute with terminate state
 	if(reachgoal == true)
 		return;
-
+	*/
 	states.insert(states.end(),
                 addedStates.begin(),
                 addedStates.end());
@@ -609,6 +665,8 @@ void CEKSearcher::update(ExecutionState *current,
     }
   }
 }
+#endif
+
 
 BasicBlock *CEKSearcher::getBB(Vertex v)
 {
@@ -863,6 +921,9 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 			{
 				TChoiceItem cItem = TChoiceItem(inst, trueBB->getFirstNonPHIOrDbg(),
 						(int)CEKSearcher::TRUE, &executor.kmodule->infos->getInfo(inst));//1:true
+				//TODO add opposite choice to purnlist
+				purnlist.push_back(falseBB->getFirstNonPHIOrDbg());
+
 				ceList.push_back(cItem);
 
 				if(!seqset.count(trueBB))
@@ -875,6 +936,9 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 			{
 				TChoiceItem cItem = TChoiceItem(inst, falseBB->getFirstNonPHIOrDbg(),
 						(int)CEKSearcher::FALSE, &executor.kmodule->infos->getInfo(inst));//0:false
+				//TODO add opposite choice to purnlist
+				purnlist.push_back(trueBB->getFirstNonPHIOrDbg());
+
 				ceList.push_back(cItem);
 
 				if(!seqset.count(falseBB))
@@ -928,6 +992,11 @@ std::string CEKSearcher::getBBName(Vertex v)
 	return res;
 }
 
+double CEKSearcher::getWeight(ExecutionState* es)
+{
+	return es->weight;
+}
+
 //------------------------------------//
 //------------EDSearcher--------------//
 //------------------------------------//
@@ -952,6 +1021,8 @@ bool EDSearcher::InWhiteList(llvm::Function* fit, std::string stdname)
 	return false;
 //	return (retname == stdfname);
 }
+
+
 
 ExecutionState& EDSearcher::selectState()
 {
@@ -1038,20 +1109,18 @@ ExecutionState& EDSearcher::selectState()
 	//return *states.back();
 }
 
+
 void EDSearcher::update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
             const std::set<ExecutionState*> &removedStates)
 {
 
 	if(current && current->pc()->inst == GoalInst)
 	{
-
-
 		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
 		states.clear();
 		reachgoal =true;
 		executor.setHaltExecution(true);
 		return;
-
 	}
 
 	if(states.size() == 0)
