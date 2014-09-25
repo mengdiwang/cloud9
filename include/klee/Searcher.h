@@ -150,7 +150,7 @@ namespace klee {
     std::vector<ExecutionState*> states;
 	
     bool updateWeights;
-	DiscretePDF<ExecutionState*> qstates;
+	DiscretePDF<ExecutionState*> *qstates;
 	double getWeight(ExecutionState*);
 	std::vector<Instruction *>purnlist;
 	

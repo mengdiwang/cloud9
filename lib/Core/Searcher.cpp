@@ -567,7 +567,7 @@ void CEKSearcher::update(ExecutionState *current,
 			qstates->insert(es, getWeight(es));
 	}
 	
-	for(std::set<ExecutionState*>::const_iterator it = removeStates.begin(),
+	for(std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
 		ie = removedStates.end(); it != ie; ++it)
 	{
 		qstates->remove(*it);
