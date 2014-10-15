@@ -49,7 +49,7 @@
 #include <boost/graph/depth_first_search.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 
-#define TEST
+//#define TEST
 //using namespace boost;
 
 using namespace klee;
@@ -578,23 +578,15 @@ void CEKSearcher::update(ExecutionState *current,
                          const std::set<ExecutionState*> &addedStates,
                          const std::set<ExecutionState*> &removedStates) {
 
-	if(current && current->pc()->inst == GoalInst)
-	{
-
-		LOG(INFO) << "REACH TARGET";
-		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
-		//states.clear();
-		//reachgoal = true;
-		//executor.setHaltExecution(true);
-		//return;
-	}
-
 	//wmd
-	/*
-	TODO:The goal should be execute with terminate state
+	//?? to comment
+	//TODO:The goal should be execute with terminate state
 	if(reachgoal == true)
+	{
+		//executor.setHaltExecution(true);
 		return;
-	*/
+	}
+	//?
 	states.insert(states.end(),
                 addedStates.begin(),
                 addedStates.end());
@@ -614,6 +606,7 @@ void CEKSearcher::update(ExecutionState *current,
 			}
 		}
 	}
+	std::cerr<<"\n";
 
   for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
 		  ie = addedStates.end(); it!=ie; ++it)
@@ -664,6 +657,19 @@ void CEKSearcher::update(ExecutionState *current,
       assert(ok && "invalid state removed");
     }
   }
+
+	if(current && current->pc()->inst == GoalInst)
+	{
+
+		LOG(INFO) << "REACH TARGET";
+		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
+		//?? to comment		
+		//states.clear();
+		reachgoal = true;
+		//executor.setHaltExecution(true);
+		return;
+		//?
+	}
 }
 #endif
 
