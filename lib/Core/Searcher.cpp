@@ -529,6 +529,7 @@ ExecutionState &CEKSearcher::selectState() {
 		}
 	}
 
+
 	if(cereach>0)
 	{	
 		std::cerr << "{Encounter " << cereach << " edges}\n";
@@ -600,6 +601,7 @@ void CEKSearcher::update(ExecutionState *current,
 		return;
 	}
 	//?
+	current->
 	states.insert(states.end(),
                 addedStates.begin(),
                 addedStates.end());
@@ -855,11 +857,40 @@ void CEKSearcher::BuildGraph(std::string file)
 				//std::cerr << "function:" << fit->getName().str()  << " call function:" << f->getName().str()<<"\n";
                 if(!isCallsite.count(callerBB))
                     isCallsite.insert(callerBB);
-                
             }
         }
     }
 	PrintDotGraph();
+}
+
+//TODO mix into one function, start traversal from main to target
+void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceList)
+{
+	BasicBlock *start = targetB;
+	TCList list;
+	std::set<Function *> fset;
+
+	while(start != rootBB)
+	{
+		list.clear();
+		if(!fset.count(start->getParent()))
+		{
+			BasicBlock *ret = findCEofSingleBB(start, list);
+			ceList.insert(ceList.begin(), list.begin(), list.end());
+			fset.insert(start->getParent());
+
+			//if(ret == rootBB || ret->getParent()->getName().str()=="main")
+			//	return;
+
+			//CallSite cs(ret->begin());
+			//Function *f = cs.getCalledFunction();
+			//start = f->end();
+
+			std::cerr<<f->getName();
+		}
+	}
+
+
 }
 
 void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList)
@@ -884,16 +915,17 @@ void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tB
 	}
 }
 
-void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
+BasicBlock *CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 {
 	if(targetB == NULL)
-		return;
+		return NULL;
 	//Function *F = targetB->getParent();
 	std::queue<BasicBlock *> bbque;
 	std::set<BasicBlock *>bbset;
 	bbset.insert(targetB);
 	bbque.push(targetB);
 	BasicBlock *frontB = NULL;
+	BasicBlock *headB = NULL;
 	int count = 0;
 
 	while(!bbque.empty())
@@ -914,7 +946,9 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 	}
 
 	if(frontB == NULL)
-		return;
+		return NULL;
+
+	headB = frontB;
 
 	std::set<BasicBlock *> seqset;
 
@@ -983,6 +1017,7 @@ void CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 		}
 	}
 	std::sort(ceList.begin(), ceList.end(), CompareByLine);
+	return headB;
 }
 
 

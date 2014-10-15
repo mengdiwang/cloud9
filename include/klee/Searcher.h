@@ -167,6 +167,7 @@ namespace klee {
     std::vector<std::map<llvm::Instruction*, bool> > instMaps;
     std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
     std::set<BasicBlock *> isCallsite;
+    std::map<Function *, std::vector<Function *>> inverseCallerMap;
 
     Graph bbG;
     std::map<BasicBlock*, Vertex> bbMap;
@@ -175,8 +176,10 @@ namespace klee {
     void BuildGraph(std::string file);
     //void getDefectList(std::string docname, defectList *res);
     void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList);
-    void findCEofSingleBB(BasicBlock *targetB, TCList &ceList);
+    BasicBlock *findCEofSingleBB(BasicBlock *targetB, TCList &ceList);
     
+    void GetCEList(BasicBlock *tBB, BasicBlock *rootBB, TCList &ceList);
+
     void addBBEdges(llvm::BasicBlock *BB);
     BasicBlock *getBB(Vertex v);
     void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target, Graph &graph);
@@ -220,7 +223,7 @@ namespace klee {
 	  Graph bbG;
 	  std::map<BasicBlock*, Vertex> bbMap;
 	  std::vector<std::map<llvm::Instruction*, bool> > instMaps;
-	  std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
+	  //std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
 	  std::set<BasicBlock *> isCallsite;
 
 	  std::map<std::string, unsigned> strmap;
