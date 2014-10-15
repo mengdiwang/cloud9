@@ -200,6 +200,7 @@ namespace klee {
 	
   public:
     CEKSearcher(Executor &_executor, std::string cefile);
+    ~CEKSearcher();
     ExecutionState &selectState();
     void update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
                 const std::set<ExecutionState*> &removedStates);

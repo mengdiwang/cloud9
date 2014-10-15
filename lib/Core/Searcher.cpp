@@ -405,9 +405,17 @@ void CEKSearcher::Init(std::string defectFile)
     std::cerr <<"Preparation done\n";
 }
 
-CEKSearcher::CEKSearcher(Executor &_executor, std::string defectFile):executor(_executor), miss_ctr(0)
+CEKSearcher::CEKSearcher(Executor &_executor, std::string defectFile)
+		:executor(_executor),
+		 qstates(new DiscretePDF<ExecutionState*>()),
+		 miss_ctr(0)
 {
 	Init(defectFile);
+}
+
+CEKSearcher::~CEKSearcher()
+{
+	delete qstates;
 }
 
 
@@ -536,41 +544,46 @@ ExecutionState &CEKSearcher::selectState() {
 void CEKSearcher::update(ExecutionState *current,
                          const std::set<ExecutionState*> &addedStates,
                          const std::set<ExecutionState*> &removedStates) {
-	if(current && current->pc()->inst == GoalInst)
+
+	if(!reachgoal)
 	{
-
-		LOG(INFO) << "REACH TARGET";
-		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
-	}	
-
-	if(current && updateWeights && !removedStates.count(current))
-		qstates->update(current, getWeight(current));
+		if(current && updateWeights && !removedStates.count(current))
+			qstates->update(current, this->getWeight(current));
 		
-	for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
-		ie = addedStates.end(); it != ie; ++it)
-	{
-		bool found = false;
-		ExecutionState *es = *it;
-		for(std::vector<Instruction *>::const_iterator cit = purnlist.begin(),
-			cie = purnlist.end(); cit != cie; ++cit)
+		for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
+				ie = addedStates.end(); it != ie; ++it)
 		{
-			Instruction *ci = *cit;
-			if(ci == es->pc()->inst)
+			bool found = false;
+			ExecutionState *es = *it;
+			for(std::vector<Instruction *>::const_iterator cit = purnlist.begin(),
+					cie = purnlist.end(); cit != cie; ++cit)
 			{
-				std::cerr << "reach deletepath! " << ci << "\n";
-				found = true;
-				break;
+				Instruction *ci = *cit;
+				if(ci == es->pc()->inst)
+				{
+					std::cerr << "reach deletepath! " << ci << "\n";
+					found = true;
+					break;
+				}
 			}
-		}
 
-		if(!found)
-			qstates->insert(es, getWeight(es));
+			if(!found)
+				qstates->insert(es, this->getWeight(es));
+		}
 	}
 	
 	for(std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
 		ie = removedStates.end(); it != ie; ++it)
 	{
 		qstates->remove(*it);
+	}
+
+	if(current && current->pc()->inst == GoalInst)
+	{
+
+		LOG(INFO) << "REACH TARGET";
+		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
+		reachgoal = true;
 	}
 }
 #else
