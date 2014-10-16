@@ -603,7 +603,6 @@ void CEKSearcher::update(ExecutionState *current,
 		return;
 	}
 	//?
-	current->
 	states.insert(states.end(),
                 addedStates.begin(),
                 addedStates.end());
@@ -893,6 +892,8 @@ void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tB
 //TODO mix into one function, start traversal from main to target
 void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceList)
 {
+	std::cerr << "[CEKSearcher]\n";
+/*
 	BasicBlock *start = targetB;
 	TCList list;
 	std::set<Function *> fset;
@@ -916,6 +917,7 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 			//std::cerr<<f->getName();
 		}
 	}
+*/
 
 	if(targetB == NULL)
 		return;
@@ -933,31 +935,52 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 		frontB = bbque.front();
 		bbque.pop();
 
+		std::cerr << "@line:" << executor.kmodule->infos->getInfo(frontB->begin()).line << ":\n";
+		if(frontB == rootBB)
+		{
+			std::cerr << "Reach Main\n";
+			break;
+		}
+
 		for(pred_iterator pi=pred_begin(frontB); pi!=pred_end(frontB); ++pi)
 		{
-			std::cerr << "pred\n";
+			std::cerr << "pred ";
 			BasicBlock *predB = *pi;
 			if(!bbset.count(predB))
 			{
+				std::cerr << executor.kmodule->infos->getInfo(predB->begin()).line << "\n";
 				bbset.insert(predB);
 				bbque.push(predB);
 				count ++;
+			}
+			else
+			{
+				std::cerr << "loop:";
+				std::cerr << executor.kmodule->infos->getInfo(predB->begin()).line << "\n";
 			}
 		}
 
 		std::vector<BasicBlock *> callerlist = inverseCallerMap[frontB];
 		for(std::vector<BasicBlock *>::iterator vit = callerlist.begin(); vit!=callerlist.end(); ++vit )
 		{
-			std::cerr << "callee\n";
-			BasicBlock *predB = &*vit;
+			std::cerr << "callee ";
+			BasicBlock *predB = (BasicBlock*)*vit;
 			if(!bbset.count(predB))
 			{
+				std::cerr << executor.kmodule->infos->getInfo(predB->begin()).line << "\n";
 				bbset.insert(predB);
 				bbque.push(predB);
 				count ++;
 			}
+			else
+			{
+				std::cerr << "loop";
+				std::cerr << executor.kmodule->infos->getInfo(predB->begin()).line << "\n";
+			}
 		}
+		std::cerr << "\n";
 	}
+	
 
 	if(frontB == NULL)
 		return;

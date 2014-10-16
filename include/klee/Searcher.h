@@ -167,7 +167,7 @@ namespace klee {
     std::vector<std::map<llvm::Instruction*, bool> > instMaps;
     std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
     std::set<BasicBlock *> isCallsite;
-    std::map<BasicBlock *, std::vector<BasicBlock *>> inverseCallerMap;
+    std::map<BasicBlock *, std::vector<BasicBlock *> > inverseCallerMap;
 
     Graph bbG;
     std::map<BasicBlock*, Vertex> bbMap;
@@ -223,7 +223,7 @@ namespace klee {
 	  Graph bbG;
 	  std::map<BasicBlock*, Vertex> bbMap;
 	  std::vector<std::map<llvm::Instruction*, bool> > instMaps;
-	  //std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
+	  std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
 	  std::set<BasicBlock *> isCallsite;
 
 	  std::map<std::string, unsigned> strmap;
