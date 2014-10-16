@@ -942,7 +942,11 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 			break;
 		}
 
-		if(pred_end(frontB)-pred_begin(frontB)>=2)
+		int ccount = 0;
+		for(pred_iterator ppi=pred_begin(frontB); ppi!=pred_end(frontB); ++ppi)
+			ccount ++;
+		
+		if(ccount>=2)
 		{
 			//idom
 		}
@@ -972,11 +976,11 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 					BasicBlock *falseBB = brInst->getSuccessor(1);
 					if(trueBB == frontB)
 					{
-						std::cerr << "true side\n";
+						std::cerr << "true side, CE:(" << executor.kmodule->infos->getInfo(frontB->begin()).line << "," << executor.kmodule->infos->getInfo(predB->begin()).line << ")\n";
 					}
 					else
 					{
-						std::cerr << "false side\n";
+						std::cerr << "false side, CE:(" << executor.kmodule->infos->getInfo(frontB->begin()).line << "," << executor.kmodule->infos->getInfo(predB->begin()).line << ")\n";
 					}
 				}
 			}
