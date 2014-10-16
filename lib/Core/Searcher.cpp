@@ -364,6 +364,8 @@ void CEKSearcher::Init(std::string defectFile)
                 continue;
 			}
 
+            GetCEList(bb, rootBB, ceList);
+
             std::cerr << "inter-Blocks Dijkstra\n";
             //interprocedural
             Vertex rootv = bbMap[rootBB];
@@ -853,6 +855,8 @@ void CEKSearcher::BuildGraph(std::string file)
                 boost::tie(e, inserted) = boost::add_edge(bbMap[callerBB], bbMap[calleeBB], bbG);
                 bbWeightmap[e] = 1;
                 
+                inverseCallerMap[calleeBB].push_back(callerBB); //map of callee, callers list
+
                 CallBlockMap[std::make_pair(fit, f)].push_back(callerBB);
 				//std::cerr << "function:" << fit->getName().str()  << " call function:" << f->getName().str()<<"\n";
                 if(!isCallsite.count(callerBB))
@@ -862,6 +866,29 @@ void CEKSearcher::BuildGraph(std::string file)
     }
 	PrintDotGraph();
 }
+
+void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList)
+{
+	//actually it gets the bb paths on a minimal functions path.
+	TCList list;
+	std::set<Function *> fset;
+	for(std::vector<BasicBlock *>::reverse_iterator vit=blist.rbegin(); vit!=blist.rend(); ++vit)
+	{
+		BasicBlock *frontB = *vit;
+		if(*vit == tBB || isCallsite.count(frontB) > 0)
+		{
+			list.clear();
+			if(!fset.count(frontB->getParent()))
+			{
+				findCEofSingleBB(frontB, list);
+				ceList.insert(ceList.begin(), list.begin(), list.end());
+
+				fset.insert(frontB->getParent());
+			}
+		}
+	}
+}
+
 
 //TODO mix into one function, start traversal from main to target
 void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceList)
@@ -886,33 +913,57 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 			//Function *f = cs.getCalledFunction();
 			//start = f->end();
 
-			std::cerr<<f->getName();
+			//std::cerr<<f->getName();
 		}
 	}
 
+	if(targetB == NULL)
+		return;
+	std::queue<BasicBlock *> bbque;
+	std::set<BasicBlock *> bbset;
+	bbset.insert(targetB);
+	bbque.push(targetB);
 
-}
+	BasicBlock *frontB = NULL;
+	BasicBlock *headB = NULL;
+	int count = 0;
 
-void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList)
-{
-	//actually it gets the bb paths on a minimal functions path.
-	TCList list;
-	std::set<Function *> fset;
-	for(std::vector<BasicBlock *>::reverse_iterator vit=blist.rbegin(); vit!=blist.rend(); ++vit)
+	while(!bbque.empty())
 	{
-		BasicBlock *frontB = *vit;
-		if(*vit == tBB || isCallsite.count(frontB) > 0)
-		{
-			list.clear();
-			if(!fset.count(frontB->getParent()))
-			{
-				findCEofSingleBB(frontB, list);
-				ceList.insert(ceList.begin(), list.begin(), list.end());
+		frontB = bbque.front();
+		bbque.pop();
 
-				fset.insert(frontB->getParent());
+		for(pred_iterator pi=pred_begin(frontB); pi!=pred_end(frontB); ++pi)
+		{
+			std::cerr << "pred\n";
+			BasicBlock *predB = *pi;
+			if(!bbset.count(predB))
+			{
+				bbset.insert(predB);
+				bbque.push(predB);
+				count ++;
+			}
+		}
+
+		std::vector<BasicBlock *> callerlist = inverseCallerMap[frontB];
+		for(std::vector<BasicBlock *>::iterator vit = callerlist.begin(); vit!=callerlist.end(); ++vit )
+		{
+			std::cerr << "callee\n";
+			BasicBlock *predB = &*vit;
+			if(!bbset.count(predB))
+			{
+				bbset.insert(predB);
+				bbque.push(predB);
+				count ++;
 			}
 		}
 	}
+
+	if(frontB == NULL)
+		return;
+
+	std::cerr << "[GetCEList] " << bbset.size() << "\n";
+
 }
 
 BasicBlock *CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
