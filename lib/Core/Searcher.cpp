@@ -942,6 +942,12 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 			break;
 		}
 
+		if(pred_end(frontB)-pred_begin(frontB)>=2)
+		{
+			//idom
+		}
+		else
+		{
 		for(pred_iterator pi=pred_begin(frontB); pi!=pred_end(frontB); ++pi)
 		{
 			std::cerr << "pred ";
@@ -952,12 +958,34 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 				bbset.insert(predB);
 				bbque.push(predB);
 				count ++;
+
+				//test whether or not predB is conditional
+				BranchInst *brInst = dyn_cast<BranchInst>(predB->getTerminator());
+				if(brInst == NULL)
+					continue;
+
+				if(brInst->isConditional())
+				{
+					std::cerr << "is Conditional\n";
+					Instruction *inst = dyn_cast<Instruction>(brInst);
+					BasicBlock *trueBB = brInst->getSuccessor(0);
+					BasicBlock *falseBB = brInst->getSuccessor(1);
+					if(trueBB == frontB)
+					{
+						std::cerr << "true side\n";
+					}
+					else
+					{
+						std::cerr << "false side\n";
+					}
+				}
 			}
 			else
 			{
 				std::cerr << "loop:";
 				std::cerr << executor.kmodule->infos->getInfo(predB->begin()).line << "\n";
 			}
+		}
 		}
 
 		std::vector<BasicBlock *> callerlist = inverseCallerMap[frontB];
