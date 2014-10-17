@@ -48,6 +48,7 @@
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/depth_first_search.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
+#include <boost/graph/dominator_tree.hpp>
 
 //#define TEST
 //using namespace boost;
@@ -723,6 +724,21 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex 
     if(!path->empty())
         path->insert(path->begin(), root);
     
+
+    //test boost idom
+    typedef iterator_property_map<std::vector<Vertex>::iterator, indexmap> PredMap;
+    std::vector<Vertex> domTreePredVector = std::vector<Vertex>(num_vertices(graph), graph_traits<Graph>::null_vertex());
+    PredMap domTreePredMap = make_iterator_property_map(domTreePredVector.begin(), indexmap);
+
+    lengauer_tarjan_dominator_tree(graph, root, domTreePredMap);
+    std::vector<int> idom(num_vertices(graph));
+
+    graph_traits<Graph>::vertex_iterator uItr, uEnd;
+
+    for(tie(uItr, uEnd) = vertices(graph); uItr!=uEnd; ++uItr)
+    {
+
+    }
 }
 
 BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
