@@ -946,11 +946,13 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 		for(pred_iterator ppi=pred_begin(frontB); ppi!=pred_end(frontB); ++ppi)
 			ccount ++;
 		
+		/*
 		if(ccount>=2)
 		{
 			//idom
 		}
 		else
+		*/
 		{
 		for(pred_iterator pi=pred_begin(frontB); pi!=pred_end(frontB); ++pi)
 		{
@@ -968,7 +970,7 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 				if(brInst == NULL)
 					continue;
 
-				if(brInst->isConditional())
+				if(ccount < 2 && brInst->isConditional())
 				{
 					std::cerr << "is Conditional\n";
 					Instruction *inst = dyn_cast<Instruction>(brInst);
