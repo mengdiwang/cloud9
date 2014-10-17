@@ -131,7 +131,7 @@ BasicBlock* GetMainBB(Module *M)
 	BasicBlock *rootBB = NULL;
 	for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
 	{
-		if(fit->getName().str() == "main")
+		if(fit->getName().str() == "main") //TODO, change to user defined string
 		{
 			if(rootBB!=NULL)
 			{
@@ -333,7 +333,7 @@ void CEKSearcher::Init(std::string defectFile)
 		BasicBlock *rootBB = NULL;
 		for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
 		{
-			if(fit->getName().str()=="main")
+			if(fit->getName().str()=="main")//TODO change to user defined string
 			{
 				if(rootBB!=NULL)
 				{
@@ -373,6 +373,11 @@ void CEKSearcher::Init(std::string defectFile)
             Vertex targetv = bbMap[bb];
             path.clear();
             bbpath.clear();
+
+			//TODO find call chain on the call graph(funcGraph) by userdefined heuristic method
+			//Iterate all the functions. In each function, bottom up traverse the idoms and preds put the CE into ce list
+			//idom use llvm idom or boost idom, boost idom should be fit into each function
+
 
             findSinglePath(&path, rootv, targetv, bbG);
             
@@ -729,17 +734,35 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex 
     typedef property_map<Graph, vertex_index_t>::type IndexMap;
     typedef iterator_property_map<std::vector<Vertex>::iterator, IndexMap> PredMap;
     std::vector<Vertex> domTreePredVector = std::vector<Vertex>(num_vertices(graph), graph_traits<Graph>::null_vertex());
-    PredMap domTreePredMap = make_iterator_property_map(domTreePredVector.begin(), IndexMap);
+    PredMap domTreePredMap = make_iterator_property_map(domTreePredVector.begin(), indexmap);
 
     lengauer_tarjan_dominator_tree(graph, root, domTreePredMap);
     std::vector<int> idom(num_vertices(graph));
-
+	std::map<BasicBlock*, BasicBlock*> idommap;
     graph_traits<Graph>::vertex_iterator uItr, uEnd;
 
     for(tie(uItr, uEnd) = vertices(graph); uItr!=uEnd; ++uItr)
     {
-
+		if(get(domTreePredMap, *uItr) != graph_traits<Graph>::null_vertex())
+		{
+			idom[get(indexmap, *uItr)] = get(indexmap, get(domTreePredMap, *uItr));		
+			BasicBlock *domnode = getBB(get(domTreePredMap, *uItr));		
+			BasicBlock *node = getBB(*uItr);	
+			idommap.insert(std::make_pair(node, domnode));
+			std::cerr << "node:" <<  executor.kmodule->infos->getInfo(node->begin()).line << " domed by node:" << executor.kmodule->infos->getInfo(domnode->begin()).line << "\n";
+		}
+		else
+		{
+			idom[get(indexmap, *uItr)] = (std::numeric_limits<int>::max)();
+		}
+		//std::cerr << "0";
     }
+
+	copy(idom.begin(), idom.end(), std::ostream_iterator<int>(std::cerr, "\n"));
+	
+
+	std::cerr << "\n";
+	std::cerr << " end\n";
 }
 
 BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
@@ -910,31 +933,6 @@ void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tB
 void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceList)
 {
 	std::cerr << "[CEKSearcher]\n";
-/*
-	BasicBlock *start = targetB;
-	TCList list;
-	std::set<Function *> fset;
-
-	while(start != rootBB)
-	{
-		list.clear();
-		if(!fset.count(start->getParent()))
-		{
-			BasicBlock *ret = findCEofSingleBB(start, list);
-			ceList.insert(ceList.begin(), list.begin(), list.end());
-			fset.insert(start->getParent());
-
-			//if(ret == rootBB || ret->getParent()->getName().str()=="main")
-			//	return;
-
-			//CallSite cs(ret->begin());
-			//Function *f = cs.getCalledFunction();
-			//start = f->end();
-
-			//std::cerr<<f->getName();
-		}
-	}
-*/
 
 	if(targetB == NULL)
 		return;
@@ -1040,6 +1038,7 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 
 }
 
+//TODO change to GetCEList
 BasicBlock *CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 {
 	if(targetB == NULL)
@@ -1052,6 +1051,7 @@ BasicBlock *CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 	BasicBlock *frontB = NULL;
 	BasicBlock *headB = NULL;
 	int count = 0;
+	int ccount = 0;
 
 	while(!bbque.empty())
 	{
@@ -1066,9 +1066,56 @@ BasicBlock *CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 				bbset.insert(predB);
 				bbque.push(predB);
 				count ++;
+			
+
+				//wmd add 2014 10 17 from GetCEList
+				//test whether or not predB is conditional
+				BranchInst *brInst = dyn_cast<BranchInst>(predB->getTerminator());
+				if(brInst == NULL)
+					continue;
+
+				if(ccount < 2 && brInst->isConditional())
+				{
+					std::cerr << "is Conditional\n";
+					Instruction *inst = dyn_cast<Instruction>(brInst);
+					BasicBlock *trueBB = brInst->getSuccessor(0);
+					BasicBlock *falseBB = brInst->getSuccessor(1);
+					if(trueBB == frontB)
+					{
+						std::cerr << "true side, CE:(" << executor.kmodule->infos->getInfo(frontB->begin()).line << "," << executor.kmodule->infos->getInfo(predB->begin()).line << ")\n";
+
+						TChoiceItem cItem = TChoiceItem(inst, trueBB->getFirstNonPHIOrDbg(),
+						(int)CEKSearcher::TRUE, &executor.kmodule->infos->getInfo(inst));//1:true
+						//TODO add opposite choice to purnlist
+						purnlist.push_back(falseBB->getFirstNonPHIOrDbg());
+
+						ceList.push_back(cItem);
+
+					}
+					else
+					{
+						std::cerr << "false side, CE:(" << executor.kmodule->infos->getInfo(frontB->begin()).line << "," << executor.kmodule->infos->getInfo(predB->begin()).line << ")\n";
+
+						TChoiceItem cItem = TChoiceItem(inst, falseBB->getFirstNonPHIOrDbg(),
+						(int)CEKSearcher::FALSE, &executor.kmodule->infos->getInfo(inst));//0:false
+						//TODO add opposite choice to purnlist
+						purnlist.push_back(trueBB->getFirstNonPHIOrDbg());
+
+						ceList.push_back(cItem);
+					}
+				}
+			}
+			else
+			{
+				std::cerr << "loop:";
+				std::cerr << executor.kmodule->infos->getInfo(predB->begin()).line << "\n";
 			}
 		}
 	}
+
+	std::sort(ceList.begin(), ceList.end(), CompareByLine);
+	return frontB;
+	//end here ~
 
 	if(frontB == NULL)
 		return NULL;
