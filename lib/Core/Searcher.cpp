@@ -726,9 +726,10 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex 
     
 
     //test boost idom
-    typedef iterator_property_map<std::vector<Vertex>::iterator, indexmap> PredMap;
+    typedef property_map<Graph, vertex_index_t>::type IndexMap;
+    typedef iterator_property_map<std::vector<Vertex>::iterator, IndexMap> PredMap;
     std::vector<Vertex> domTreePredVector = std::vector<Vertex>(num_vertices(graph), graph_traits<Graph>::null_vertex());
-    PredMap domTreePredMap = make_iterator_property_map(domTreePredVector.begin(), indexmap);
+    PredMap domTreePredMap = make_iterator_property_map(domTreePredVector.begin(), IndexMap);
 
     lengauer_tarjan_dominator_tree(graph, root, domTreePredMap);
     std::vector<int> idom(num_vertices(graph));
