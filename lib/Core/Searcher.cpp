@@ -204,13 +204,15 @@ void /*CEKSearcher::*/getDefectList(std::string docname, defectList *res)
     std::cerr << "Open defect file " << docname << "\n";
     std::ifstream fin(docname.c_str());
     std::string fname="";
-    std::vector<unsigned> lineList;
+    std::string funcname = "";
+    std::string strategy = "";
+    std::vector<TTask> lineList;
     while(!fin.eof())
     {
         std::string filename="";
         unsigned lineno;
 
-        fin >> filename >> lineno;
+        fin >> filename >> lineno >> funcname >> strategy;
         if(filename.length() < 1)
             break;
         std::cerr << "readin:" << filename << "\n";
@@ -226,7 +228,7 @@ void /*CEKSearcher::*/getDefectList(std::string docname, defectList *res)
             fname = filename;
         }
 
-        lineList.push_back(lineno);
+        lineList.push_back(TTask(lineno, funcname, strategy));
     }
     //tail add
     if(lineList.size()>0 && fname != "")
@@ -317,7 +319,7 @@ void CEKSearcher::Init(std::string defectFile)
     */
 
 
-    std::vector<unsigned>lines;
+    std::vector<TTask>lines;
     std::vector<BasicBlock *> bbpath;
 	std::cerr <<"size of defectList:" << dl.size() <<"\n";
     for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
@@ -355,9 +357,12 @@ void CEKSearcher::Init(std::string defectFile)
 
         for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
         {
-            std::cerr << "Looking for '" << file << "'(" << *lit << ")\n";
+        	BasicBlock *startBB = NULL;
+        	TTask task = *lit;
+            std::cerr << "Looking for '" << file << "'(" << task.lineno << ") from func:"
+            		<< task.funcname << " with strategy " << task.strategy << ")\n";
 
-            bb = FindTarget(file, *lit);
+            bb = FindTarget(file, task, &startBB);
             
             if(bb == NULL)
 			{
@@ -365,11 +370,20 @@ void CEKSearcher::Init(std::string defectFile)
                 continue;
 			}
 
-            GetCEList(bb, rootBB, ceList);
-
             std::cerr << "inter-Blocks Dijkstra\n";
+            Vertex rootv;
+            if(startBB == NULL)
+            {
+            	GetCEList(bb, rootBB, ceList);
+            	rootv = bbMap[rootBB];
+            }
+            else
+            {
+            	GetCEList(bb, startBB, ceList);
+            	rootv = bbMap[startBB];
+            }
             //interprocedural
-            Vertex rootv = bbMap[rootBB];
+
             Vertex targetv = bbMap[bb];
             path.clear();
             bbpath.clear();
@@ -377,9 +391,7 @@ void CEKSearcher::Init(std::string defectFile)
 			//TODO find call chain on the call graph(funcGraph) by userdefined heuristic method
 			//Iterate all the functions. In each function, bottom up traverse the idoms and preds put the CE into ce list
 			//idom use llvm idom or boost idom, boost idom should be fit into each function
-
-
-            findSinglePath(&path, rootv, targetv, bbG);
+            findSinglePath(&path, rootv, targetv, bbG, task.strategy);
             
             BasicBlock *tmpb = NULL;
             for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
@@ -707,30 +719,35 @@ BasicBlock *CEKSearcher::getBB(Vertex v)
 }
 
 //find the path on the built graph
-void CEKSearcher::findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target, Graph &graph)
+void CEKSearcher::findSinglePath(std::vector<Vertex> *path,
+		Vertex root, Vertex target, Graph &graph, std::string strategy)
 {
     std::vector<Vertex> p(num_vertices(graph));
     std::vector<int> d(num_vertices(graph));
     property_map<Graph, vertex_index_t>::type indexmap = get(vertex_index, graph);
     property_map<Graph, edge_weight_t>::type bbWeightmap = get(edge_weight, graph);
     
-    boost::dijkstra_shortest_paths(graph, root, &p[0], &d[0], bbWeightmap, indexmap,
+    if(strategy=="shortest")
+    {
+
+    	boost::dijkstra_shortest_paths(graph, root, &p[0], &d[0], bbWeightmap, indexmap,
                             std::less<int>(), closed_plus<int>(),
                             (std::numeric_limits<int>::max)(), 0,
                             default_dijkstra_visitor());
     
-    //  std::cout << "shortest path:" << std::endl;
-    while(p[target] != target)
-    {
-        path->insert(path->begin(), target);
-        target = p[target];
+    	//  std::cout << "shortest path:" << std::endl;
+    	while(p[target] != target)
+    	{
+    		path->insert(path->begin(), target);
+    		target = p[target];
+    	}
+    	// Put the root in the list aswell since the loop above misses that one
+    	if(!path->empty())
+    		path->insert(path->begin(), root);
     }
-    // Put the root in the list aswell since the loop above misses that one
-    if(!path->empty())
-        path->insert(path->begin(), root);
-    
 
     //test boost idom
+    //GET idom
     typedef property_map<Graph, vertex_index_t>::type IndexMap;
     typedef iterator_property_map<std::vector<Vertex>::iterator, IndexMap> PredMap;
     std::vector<Vertex> domTreePredVector = std::vector<Vertex>(num_vertices(graph), graph_traits<Graph>::null_vertex());
@@ -765,7 +782,7 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex 
 	std::cerr << " end\n";
 }
 
-BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
+BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **pstartBB)
 {
 	llvm::Module *M = executor.kmodule->module;
     klee::KModule *km = executor.kmodule;
@@ -776,6 +793,20 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
     {    
 		//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
     	//for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
+
+    	if(fit->getName().str()==task.funcname)//TODO change to user defined string
+    	{
+    		if(*pstartBB!=NULL)
+    		{
+    			continue;
+    		}
+    		else
+    		{
+    			std::cerr << "reach func the " << task.funcname << "\n";
+    			*pstartBB = &(fit->getEntryBlock());
+    		}
+    	}
+
         for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
         {
 			unsigned linenolow = 0;        
@@ -789,10 +820,10 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, unsigned line)
 				break;
         	//std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
 			//std::cerr << "reach:'" << filename << "(" << instfname << ")'(" << linenolow << "," << lineno << ")\n";
-        	if(line > linenolow && line <= lineno && instfname == stdfname)//change to range search
+        	if(task.lineno > linenolow && task.lineno <= lineno && instfname == stdfname)//change to range search
 			//if(lineno == line && filename == file)
         	{
-        		int offr = (int)line-(int)lineno;
+        		int offr = (int)task.lineno-(int)lineno;
 				int off = (offr>=0)? offr: -offr;
 				if(off < offset)
 				{  		
