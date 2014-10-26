@@ -117,14 +117,6 @@ namespace klee {
     }
   };
   */
-    typedef std::map<std::string, std::vector<TTask> > defectList;
-    typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property,
-	boost::property<boost::edge_weight_t, int> > Graph;
-    typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
-  	typedef boost::graph_traits<Graph>::edge_descriptor Edge;
-	typedef boost::color_traits<boost::default_color_type> Color;
-	typedef std::vector<boost::default_color_type> ColorVec;
-
 	struct TTask
 	{
 		unsigned lineno;
@@ -134,6 +126,16 @@ namespace klee {
 			:lineno(_lineno),funcname(_funcname),strategy(_strategy){}
 	};
 
+
+    typedef std::map<std::string, std::vector<TTask> > defectList;
+    typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property,
+	boost::property<boost::edge_weight_t, int> > Graph;
+    typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
+  	typedef boost::graph_traits<Graph>::edge_descriptor Edge;
+	typedef boost::color_traits<boost::default_color_type> Color;
+	typedef std::vector<boost::default_color_type> ColorVec;
+
+	
 	struct TChoiceItem
     {
     	TChoiceItem(llvm::Instruction *_Inst, llvm::Instruction* _chosenInst, int _brChoice, const InstructionInfo *_brinfo)

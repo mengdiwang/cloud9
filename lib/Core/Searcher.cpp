@@ -50,7 +50,7 @@
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <boost/graph/dominator_tree.hpp>
 
-//#define TEST
+#define TEST
 //using namespace boost;
 
 using namespace klee;
@@ -355,7 +355,7 @@ void CEKSearcher::Init(std::string defectFile)
 			continue;
 		}
 
-        for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
+        for(std::vector<TTask>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
         {
         	BasicBlock *startBB = NULL;
         	TTask task = *lit;
@@ -441,7 +441,8 @@ CEKSearcher::~CEKSearcher()
 
 #ifdef TEST
 ExecutionState &CEKSearcher::selectState() {
-  return *qstates->choose(theRNG.getDoubleL());
+	if(!*qstates->empty())
+  		return *qstates->choose(theRNG.getDoubleL());
 }
 
 #else
@@ -582,7 +583,7 @@ void CEKSearcher::update(ExecutionState *current,
 				Instruction *ci = *cit;
 				if(ci == es->pc()->inst)
 				{
-					std::cerr << "reach deletepath! " << ci << "\n";
+					std::cerr << "\n\nreach deletepath! " << ci << "\n\n";
 					found = true;
 					break;
 				}
@@ -1251,6 +1252,21 @@ std::string CEKSearcher::getBBName(Vertex v)
 
 double CEKSearcher::getWeight(ExecutionState* es)
 {
+	std::cerr << "\n";
+	for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
+	{
+		if(es && tcit->chosenInst == es->pc()->inst)
+		{
+				std::cerr << "[Current state reach es]\n";
+				es->weight += 10;
+		}
+		if(es && tcit->Inst == es->pc()->inst)
+		{
+				std::cerr << "[Critical Branch reach]\n";
+		}
+	}
+	std::cerr << es->pc()->inst << " weight:" << es->weight << "\n";
+
 	return es->weight;
 }
 
@@ -1640,21 +1656,22 @@ void EDSearcher::Init(std::string defectFile)
 	//refactor to on func
 	BasicBlock *rootBB = GetMainBB(M);
 	std::vector<BasicBlock *> bbpath;
-	std::vector<unsigned> lines;
+	std::vector<TTask> lines;
 	for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
 	{
 		std::string file = dit->first;
+		
 		lines = dit->second;
 
 		BuildGraph(file, executor, bbMap, bbG, CallBlockMap, isCallsite);
 
 		BasicBlock *bb = NULL;
-		for(std::vector<unsigned>::iterator lit=lines.begin();
+		for(std::vector<TTask>::iterator lit=lines.begin();
 				lit!=lines.end(); ++lit)
 		{
-
-			std::cerr << "Looking for '" << file << "'(" << *lit << ")\n";
-			bb = FindTarget(executor, file, *lit, &GoalInst);
+			TTask task = *lit;
+			std::cerr << "Looking for '" << file << "'(" << task.lineno << ")\n";
+			bb = FindTarget(executor, file, task.lineno, &GoalInst);
 			
 			if(bb == NULL || rootBB == NULL)
 				continue;
