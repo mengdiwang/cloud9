@@ -84,8 +84,8 @@ namespace klee {
       update(current, std::set<ExecutionState*>(), tmp);
     }
 
-    bool reachgoal;
-    bool GetReachGoal(){return reachgoal;}
+    int reachgoal;
+    int GetReachGoal(){return reachgoal;}
   };
     
   
@@ -137,8 +137,10 @@ namespace klee {
 	typedef boost::color_traits<boost::default_color_type> Color;
 	typedef std::vector<boost::default_color_type> ColorVec;
 
-	typedef property_map<Graph, vertex_index_t>::type IndexMap;
-	typedef iterator_property_map<std::vector<Vertex>::iterator, IndexMap> PredMap;
+	//typedef property_map<Graph, vertex_index_t>::type IndexMap;
+	//typedef iterator_property_map<std::vector<Vertex>::iterator, property_map<Graph, vertex_index_t>::type> PredMap;
+	typedef std::map<BasicBlock*, BasicBlock*> IdomMap;
+
 
 
 	struct TChoiceItem
@@ -191,16 +193,16 @@ namespace klee {
     BasicBlock *FindTarget(std::string file, TTask line, BasicBlock **pstartBB);
     void BuildGraph(std::string file);
     //void getDefectList(std::string docname, defectList *res);
-    void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList, PredMap domTreePredMap);
+    void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList, IdomMap domTreePredMap);
     BasicBlock *findCEofSingleBB(BasicBlock *targetB, TCList &ceList);
-    BasicBlock *findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &ceList, PredMap domTreePredMap);
+    BasicBlock *findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &ceList, IdomMap domTreePredMap);
     
     void GetCEList(BasicBlock *tBB, BasicBlock *rootBB, TCList &ceList);
 
     void addBBEdges(llvm::BasicBlock *BB);
     BasicBlock *getBB(Vertex v);
     void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target,
-    		Graph &graph, std::string strategy, PredMap &domTreePredMap);
+    		Graph &graph, std::string strategy, IdomMap &domTreePredMap);
 
 	std::string getBBName(Vertex v);
 	void PrintDotGraph();

@@ -265,7 +265,7 @@ void CEKSearcher::Init(std::string defectFile)
 	purnlist.clear();
 	updateWeights = true; //wmd TODO to test the performance
 
-	reachgoal = false;
+	reachgoal = 0;
     llvm::Module *M = executor.kmodule->module;
     //klee::KModule *km = executor.kmodule;
     cepaths.clear();
@@ -319,8 +319,6 @@ void CEKSearcher::Init(std::string defectFile)
     	}
     }
     */
-
-
     std::vector<TTask>lines;
     std::vector<BasicBlock *> bbpath;
 	std::cerr <<"size of defectList:" << dl.size() <<"\n";
@@ -359,7 +357,7 @@ void CEKSearcher::Init(std::string defectFile)
 
         for(std::vector<TTask>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
 		{
-        	PredMap domTreePredMap;//IDOM map
+        	IdomMap idomMap;//IDOM map
 
         	BasicBlock *startBB = NULL;
         	TTask task = *lit;
@@ -378,12 +376,12 @@ void CEKSearcher::Init(std::string defectFile)
             Vertex rootv;
             if(startBB == NULL)
             {
-            	GetCEList(bb, rootBB, ceList);
+            	//GetCEList(bb, rootBB, ceList);
             	rootv = bbMap[rootBB];
             }
             else
             {
-            	GetCEList(bb, startBB, ceList);
+            	//GetCEList(bb, startBB, ceList);
             	rootv = bbMap[startBB];
             }
             //interprocedural
@@ -396,7 +394,7 @@ void CEKSearcher::Init(std::string defectFile)
 			//Iterate all the functions. In each function, bottom up traverse the idoms and preds put the CE into ce list
 			//idom use llvm idom or boost idom, boost idom should be fit into each function
 
-            findSinglePath(&path, rootv, targetv, bbG, task.strategy, domTreePredMap);
+            findSinglePath(&path, rootv, targetv, bbG, task.strategy, idomMap);
             
             BasicBlock *tmpb = NULL;
             for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
@@ -404,7 +402,7 @@ void CEKSearcher::Init(std::string defectFile)
             	tmpb = getBB(*it);
             	if(tmpb != NULL) bbpath.push_back(tmpb);
             }
-            GetBBPathList(bbpath, bb, ceList, domTreePredMap);
+            GetBBPathList(bbpath, bb, ceList, idomMap);
             //cepaths.push_back(ceList);
             cepaths.insert(cepaths.end(), ceList.begin(), ceList.end());
 
@@ -445,7 +443,7 @@ CEKSearcher::~CEKSearcher()
 
 #ifdef TEST
 ExecutionState &CEKSearcher::selectState() {
-	if(qstates->empty()!=true)
+	//if(qstates->empty()!=true)
   		return *qstates->choose(theRNG.getDoubleL());
 }
 
@@ -574,9 +572,19 @@ void CEKSearcher::update(ExecutionState *current,
 	bool reach = false;
 	if(!reachgoal)
 	{
+		if(current && current->pc()->inst == GoalInst)
+		{
+			LOG(INFO) << "REACH TARGET";
+			std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
+			//reachgoal++;
+		}		
+
 		if(current && updateWeights && !removedStates.count(current))
+		{
+			std::cerr << "update qstate @update\n";
 			qstates->update(current, this->getWeight(current));
-		
+		}
+
 		for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
 				ie = addedStates.end(); it != ie; ++it)
 		{
@@ -609,22 +617,28 @@ void CEKSearcher::update(ExecutionState *current,
 			if(!found)
 				qstates->insert(es, this->getWeight(es));
 		}
+	}
+	else
+	{
+		executor.setHaltExecution(true);
+	}
 
-		//do not remove when reach goal
-		for(std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
-			ie = removedStates.end(); it != ie; ++it)
+	//do not remove when reach goal
+	for(std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
+		ie = removedStates.end(); it != ie; ++it)
+	{
+		ExecutionState *res = *it;
+		qstates->remove(*it);
+		if(res->pc()->inst == GoalInst)
 		{
-			qstates->remove(*it);
+			reachgoal++;
+			std::cerr << "halt\n";
+			//TODO where is the global ending?
+			executor.setHaltExecution(true);
 		}
 	}
 	
-	if(current && current->pc()->inst == GoalInst)
-	{
-
-		LOG(INFO) << "REACH TARGET";
-		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
-		reachgoal = true;
-	}
+	
 }
 #else
 void CEKSearcher::update(ExecutionState *current,
@@ -634,7 +648,7 @@ void CEKSearcher::update(ExecutionState *current,
 	//wmd
 	//?? to comment
 	//TODO:The goal should be execute with terminate state
-	if(reachgoal == true)
+	if(reachgoal == 1)
 	{
 		//executor.setHaltExecution(true);
 		return;
@@ -718,7 +732,7 @@ void CEKSearcher::update(ExecutionState *current,
 		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
 		//?? to comment		
 		//states.clear();
-		reachgoal = true;
+		reachgoal ++;
 		//executor.setHaltExecution(true);
 		return;
 		//?
@@ -739,7 +753,7 @@ BasicBlock *CEKSearcher::getBB(Vertex v)
 
 //find the path on the built graph
 void CEKSearcher::findSinglePath(std::vector<Vertex> *path,
-		Vertex root, Vertex target, Graph &graph, std::string strategy, PredMap &domTreePredMap)
+		Vertex root, Vertex target, Graph &graph, std::string strategy, IdomMap &idomMap)
 {
     std::vector<Vertex> p(num_vertices(graph));
     std::vector<int> d(num_vertices(graph));
@@ -772,11 +786,11 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path,
 
     std::vector<Vertex> domTreePredVector = std::vector<Vertex>(num_vertices(graph), graph_traits<Graph>::null_vertex());
     //PredMap
-    domTreePredMap = make_iterator_property_map(domTreePredVector.begin(), indexmap);
+    PredMap domTreePredMap = make_iterator_property_map(domTreePredVector.begin(), indexmap);
 
     lengauer_tarjan_dominator_tree(graph, root, domTreePredMap);
     std::vector<int> idom(num_vertices(graph));
-	std::map<BasicBlock*, BasicBlock*> idommap;
+	//std::map<BasicBlock*, BasicBlock*> idommap;
     graph_traits<Graph>::vertex_iterator uItr, uEnd;
 
     for(tie(uItr, uEnd) = vertices(graph); uItr!=uEnd; ++uItr)
@@ -786,7 +800,7 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path,
 			idom[get(indexmap, *uItr)] = get(indexmap, get(domTreePredMap, *uItr));		
 			BasicBlock *domnode = getBB(get(domTreePredMap, *uItr));		
 			BasicBlock *node = getBB(*uItr);	
-			idommap.insert(std::make_pair(node, domnode));
+			idomMap.insert(std::make_pair(node, domnode));
 			std::cerr << "node:" <<  executor.kmodule->infos->getInfo(node->begin()).line << " domed by node:" << executor.kmodule->infos->getInfo(domnode->begin()).line << "\n";
 		}
 		else
@@ -958,7 +972,7 @@ void CEKSearcher::BuildGraph(std::string file)
 	PrintDotGraph();
 }
 
-void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList, PredMap domTreePredMap)
+void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList, IdomMap idomMap)
 {
 	//actually it gets the bb paths on a minimal functions path.
 	TCList list;
@@ -974,7 +988,7 @@ void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tB
 
 				//TODO: TEST HERE!
 #ifdef TEST
-				findCEofSingleBBWithIdom(frontB, list, domTreePredMap);
+				findCEofSingleBBWithIdom(frontB, list, idomMap);
 #else
 				findCEofSingleBB(frontB, list);
 #endif
@@ -1096,7 +1110,7 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 
 }
 
-BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &ceList, PredMap domTreePredMap)
+BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &ceList, IdomMap idomMap)
 {
 	if(targetB == NULL)
 		return NULL;
@@ -1127,7 +1141,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 		if(ccount>=2)
 		{
 			//idom
-			BasicBlock *domnode = getBB(get(domTreePredMap, frontB));
+			BasicBlock *domnode = idomMap[frontB];
 			bbque.push(domnode);
 			//TODO: TEST HERE!
 		}
@@ -1187,9 +1201,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 			}
 		}
 		}
-
 	}
-
 
 	if(frontB == NULL)
 		return NULL;
@@ -1386,13 +1398,16 @@ double CEKSearcher::getWeight(ExecutionState* es)
 		if(es && tcit->chosenInst == es->pc()->inst)
 		{
 				std::cerr << "[Current state reach es]\n";
-				es->weight += 10;
+				es->weight += 1;
 		}
 		if(es && tcit->Inst == es->pc()->inst)
 		{
 				std::cerr << "[Critical Branch reach]\n";
 		}
 	}
+	if(es && es->pc()->inst == GoalInst)
+		es->weight += 10;
+
 	std::cerr << es->pc()->inst << " weight:" << es->weight << "\n";
 
 	return es->weight;
@@ -1404,7 +1419,7 @@ double CEKSearcher::getWeight(ExecutionState* es)
 
 EDSearcher::EDSearcher(Executor &_executor, std::string defectFile):executor(_executor), miss_ctr(0)
 {
-	reachgoal = false;
+	reachgoal = 0;
 	Init(defectFile);
 }
 
@@ -1519,7 +1534,7 @@ void EDSearcher::update(ExecutionState *current,const std::set<ExecutionState*> 
 	{
 		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
 		states.clear();
-		reachgoal =true;
+		reachgoal ++;
 		executor.setHaltExecution(true);
 		return;
 	}
