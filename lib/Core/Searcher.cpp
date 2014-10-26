@@ -355,8 +355,10 @@ void CEKSearcher::Init(std::string defectFile)
 			continue;
 		}
 
+
         for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
         {
+        	PredMap domTreePredMap;//IDOM map
         	BasicBlock *startBB = NULL;
         	TTask task = *lit;
             std::cerr << "Looking for '" << file << "'(" << task.lineno << ") from func:"
@@ -391,7 +393,7 @@ void CEKSearcher::Init(std::string defectFile)
 			//TODO find call chain on the call graph(funcGraph) by userdefined heuristic method
 			//Iterate all the functions. In each function, bottom up traverse the idoms and preds put the CE into ce list
 			//idom use llvm idom or boost idom, boost idom should be fit into each function
-            findSinglePath(&path, rootv, targetv, bbG, task.strategy);
+            findSinglePath(&path, rootv, targetv, bbG, task.strategy, domTreePredMap);
             
             BasicBlock *tmpb = NULL;
             for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
@@ -400,7 +402,7 @@ void CEKSearcher::Init(std::string defectFile)
             	if(tmpb != NULL) bbpath.push_back(tmpb);
             }
 
-            GetBBPathList(bbpath, bb, ceList);
+            GetBBPathList(bbpath, bb, ceList, domTreePredMap);
             //cepaths.push_back(ceList);
             cepaths.insert(cepaths.end(), ceList.begin(), ceList.end());
 
@@ -580,6 +582,18 @@ void CEKSearcher::update(ExecutionState *current,
 					cie = purnlist.end(); cit != cie; ++cit)
 			{
 				Instruction *ci = *cit;
+
+				//TODO: TEST HERE!
+				for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
+				{
+					if(tcit->chosenInst == es->pc()->inst)
+					{
+						std::cerr << ci << " reach CE choice!\n";
+						reach = true;
+						break;
+					}
+				}
+
 				if(ci == es->pc()->inst)
 				{
 					std::cerr << "reach deletepath! " << ci << "\n";
@@ -720,7 +734,7 @@ BasicBlock *CEKSearcher::getBB(Vertex v)
 
 //find the path on the built graph
 void CEKSearcher::findSinglePath(std::vector<Vertex> *path,
-		Vertex root, Vertex target, Graph &graph, std::string strategy)
+		Vertex root, Vertex target, Graph &graph, std::string strategy, PredMap &domTreePredMap)
 {
     std::vector<Vertex> p(num_vertices(graph));
     std::vector<int> d(num_vertices(graph));
@@ -748,10 +762,9 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path,
 
     //test boost idom
     //GET idom
-    typedef property_map<Graph, vertex_index_t>::type IndexMap;
-    typedef iterator_property_map<std::vector<Vertex>::iterator, IndexMap> PredMap;
     std::vector<Vertex> domTreePredVector = std::vector<Vertex>(num_vertices(graph), graph_traits<Graph>::null_vertex());
-    PredMap domTreePredMap = make_iterator_property_map(domTreePredVector.begin(), indexmap);
+    //PredMap
+    domTreePredMap = make_iterator_property_map(domTreePredVector.begin(), indexmap);
 
     lengauer_tarjan_dominator_tree(graph, root, domTreePredMap);
     std::vector<int> idom(num_vertices(graph));
@@ -937,7 +950,7 @@ void CEKSearcher::BuildGraph(std::string file)
 	PrintDotGraph();
 }
 
-void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList)
+void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList, PredMap domTreePredMap)
 {
 	//actually it gets the bb paths on a minimal functions path.
 	TCList list;
@@ -950,7 +963,13 @@ void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tB
 			list.clear();
 			if(!fset.count(frontB->getParent()))
 			{
+
+				//TODO: TEST HERE!
+#ifdef TEST
+				findCEofSingleBBWithIdom(frontB, list, domTreePredMap);
+#else
 				findCEofSingleBB(frontB, list);
+#endif
 				ceList.insert(ceList.begin(), list.begin(), list.end());
 
 				fset.insert(frontB->getParent());
@@ -1067,6 +1086,108 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 
 	std::cerr << "[GetCEList] " << bbset.size() << "\n";
 
+}
+
+BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &ceList, PredMap domTreePredMap)
+{
+	if(targetB == NULL)
+		return NULL;
+
+	std::cerr << "[findCEofSingleBBWithIdom]\n";
+
+	std::queue<BasicBlock *> bbque;
+	std::set<BasicBlock *> bbset;
+	bbset.insert(targetB);
+	bbque.push(targetB);
+
+	BasicBlock *frontB = NULL;
+	BasicBlock *headB = NULL;
+	int count = 0;
+
+	while(!bbque.empty())
+	{
+		frontB = bbque.front();
+		bbque.pop();
+
+		std::cerr << "@line:" << executor.kmodule->infos->getInfo(frontB->begin()).line << ":\n";
+
+		int ccount = 0;
+		for(pred_iterator ppi=pred_begin(frontB); ppi!=pred_end(frontB); ++ppi)
+			ccount ++;
+
+
+		if(ccount>=2)
+		{
+			//idom
+			BasicBlock *domnode = getBB(get(domTreePredMap, frontB));
+			bbque.push(domnode);
+			//TODO: TEST HERE!
+		}
+		else
+		{
+		for(pred_iterator pi=pred_begin(frontB); pi!=pred_end(frontB); ++pi)
+		{
+			std::cerr << "pred ";
+			BasicBlock *predB = *pi;
+			if(!bbset.count(predB))
+			{
+				std::cerr << executor.kmodule->infos->getInfo(predB->begin()).line << "\n";
+				bbset.insert(predB);
+				bbque.push(predB);
+				count ++;
+
+				//test whether or not predB is conditional
+				BranchInst *brInst = dyn_cast<BranchInst>(predB->getTerminator());
+				if(brInst == NULL)
+					continue;
+
+				if(ccount < 2 && brInst->isConditional())
+				{
+					std::cerr << "is Conditional\n";
+					Instruction *inst = dyn_cast<Instruction>(brInst);
+					BasicBlock *trueBB = brInst->getSuccessor(0);
+					BasicBlock *falseBB = brInst->getSuccessor(1);
+					if(trueBB == frontB)
+					{
+						//TODO: TEST HERE!
+						std::cerr << "true side, CE:(" << executor.kmodule->infos->getInfo(frontB->begin()).line << "," << executor.kmodule->infos->getInfo(predB->begin()).line << ")\n";
+
+						TChoiceItem cItem = TChoiceItem(inst, trueBB->getFirstNonPHIOrDbg(),
+							(int)CEKSearcher::TRUE, &executor.kmodule->infos->getInfo(inst));//1:true
+						purnlist.push_back(falseBB->getFirstNonPHIOrDbg());
+
+						ceList.push_back(cItem);
+
+					}
+					else
+					{
+						//TODO: TEST HERE!
+						std::cerr << "false side, CE:(" << executor.kmodule->infos->getInfo(frontB->begin()).line << "," << executor.kmodule->infos->getInfo(predB->begin()).line << ")\n";
+
+						TChoiceItem cItem = TChoiceItem(inst, falseBB->getFirstNonPHIOrDbg(),
+						(int)CEKSearcher::FALSE, &executor.kmodule->infos->getInfo(inst));//0:false
+						purnlist.push_back(trueBB->getFirstNonPHIOrDbg());
+
+						ceList.push_back(cItem);
+					}
+				}
+			}
+			else
+			{
+				std::cerr << "loop:";
+				std::cerr << executor.kmodule->infos->getInfo(predB->begin()).line << "\n";
+			}
+		}
+		}
+
+	}
+
+
+	if(frontB == NULL)
+		return NULL;
+
+	std::cerr << "[GetCEList] " << bbset.size() << "\n";
+	std::sort(ceList.begin(), ceList.end(), CompareByLine);
 }
 
 //TODO change to GetCEList
