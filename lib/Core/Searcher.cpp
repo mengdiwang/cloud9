@@ -50,13 +50,9 @@
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <boost/graph/dominator_tree.hpp>
 
->>>>>>>>>>>>>>>>>>>> File 1
+
 #define TEST
->>>>>>>>>>>>>>>>>>>> File 2
-//#define TEST
->>>>>>>>>>>>>>>>>>>> File 3
-//#define TEST
-<<<<<<<<<<<<<<<<<<<<
+
 //using namespace boost;
 
 using namespace klee;
@@ -361,20 +357,10 @@ void CEKSearcher::Init(std::string defectFile)
 			continue;
 		}
 
->>>>>>>>>>>>>>>>>>>> File 1
         for(std::vector<TTask>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
->>>>>>>>>>>>>>>>>>>> File 2
-        for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
->>>>>>>>>>>>>>>>>>>> File 3
-
-        for(std::vector<unsigned>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
-<<<<<<<<<<<<<<<<<<<<
-        {
->>>>>>>>>>>>>>>>>>>> File 1
->>>>>>>>>>>>>>>>>>>> File 2
->>>>>>>>>>>>>>>>>>>> File 3
+		{
         	PredMap domTreePredMap;//IDOM map
-<<<<<<<<<<<<<<<<<<<<
+
         	BasicBlock *startBB = NULL;
         	TTask task = *lit;
             std::cerr << "Looking for '" << file << "'(" << task.lineno << ") from func:"
@@ -409,13 +395,8 @@ void CEKSearcher::Init(std::string defectFile)
 			//TODO find call chain on the call graph(funcGraph) by userdefined heuristic method
 			//Iterate all the functions. In each function, bottom up traverse the idoms and preds put the CE into ce list
 			//idom use llvm idom or boost idom, boost idom should be fit into each function
->>>>>>>>>>>>>>>>>>>> File 1
-            findSinglePath(&path, rootv, targetv, bbG, task.strategy);
->>>>>>>>>>>>>>>>>>>> File 2
-            findSinglePath(&path, rootv, targetv, bbG, task.strategy);
->>>>>>>>>>>>>>>>>>>> File 3
+
             findSinglePath(&path, rootv, targetv, bbG, task.strategy, domTreePredMap);
-<<<<<<<<<<<<<<<<<<<<
             
             BasicBlock *tmpb = NULL;
             for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
@@ -423,14 +404,7 @@ void CEKSearcher::Init(std::string defectFile)
             	tmpb = getBB(*it);
             	if(tmpb != NULL) bbpath.push_back(tmpb);
             }
-
->>>>>>>>>>>>>>>>>>>> File 1
-            GetBBPathList(bbpath, bb, ceList);
->>>>>>>>>>>>>>>>>>>> File 2
-            GetBBPathList(bbpath, bb, ceList);
->>>>>>>>>>>>>>>>>>>> File 3
             GetBBPathList(bbpath, bb, ceList, domTreePredMap);
-<<<<<<<<<<<<<<<<<<<<
             //cepaths.push_back(ceList);
             cepaths.insert(cepaths.end(), ceList.begin(), ceList.end());
 
@@ -471,7 +445,7 @@ CEKSearcher::~CEKSearcher()
 
 #ifdef TEST
 ExecutionState &CEKSearcher::selectState() {
-	if(!*qstates->empty())
+	if(qstates->empty()!=true)
   		return *qstates->choose(theRNG.getDoubleL());
 }
 
@@ -597,6 +571,7 @@ void CEKSearcher::update(ExecutionState *current,
                          const std::set<ExecutionState*> &addedStates,
                          const std::set<ExecutionState*> &removedStates) {
 
+	bool reach = false;
 	if(!reachgoal)
 	{
 		if(current && updateWeights && !removedStates.count(current))
@@ -634,14 +609,15 @@ void CEKSearcher::update(ExecutionState *current,
 			if(!found)
 				qstates->insert(es, this->getWeight(es));
 		}
+
+		//do not remove when reach goal
+		for(std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
+			ie = removedStates.end(); it != ie; ++it)
+		{
+			qstates->remove(*it);
+		}
 	}
 	
-	for(std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
-		ie = removedStates.end(); it != ie; ++it)
-	{
-		qstates->remove(*it);
-	}
-
 	if(current && current->pc()->inst == GoalInst)
 	{
 
@@ -791,14 +767,9 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path,
 
     //test boost idom
     //GET idom
->>>>>>>>>>>>>>>>>>>> File 1
     typedef property_map<Graph, vertex_index_t>::type IndexMap;
     typedef iterator_property_map<std::vector<Vertex>::iterator, IndexMap> PredMap;
->>>>>>>>>>>>>>>>>>>> File 2
-    typedef property_map<Graph, vertex_index_t>::type IndexMap;
-    typedef iterator_property_map<std::vector<Vertex>::iterator, IndexMap> PredMap;
->>>>>>>>>>>>>>>>>>>> File 3
-<<<<<<<<<<<<<<<<<<<<
+
     std::vector<Vertex> domTreePredVector = std::vector<Vertex>(num_vertices(graph), graph_traits<Graph>::null_vertex());
     //PredMap
     domTreePredMap = make_iterator_property_map(domTreePredVector.begin(), indexmap);
