@@ -27,6 +27,8 @@
 //#include <boost/graph/graphviz.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/depth_first_search.hpp>
+#include <boost/graph/dijkstra_shortest_paths.hpp>
+#include <boost/graph/dominator_tree.hpp>
 
 // FIXME: Move out of header, use llvm streams.
 #include <ostream>
