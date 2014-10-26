@@ -117,6 +117,17 @@ namespace klee {
     }
   };
   */
+    typedef std::map<std::string, std::vector<TTask> > defectList;
+    typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property,
+	boost::property<boost::edge_weight_t, int> > Graph;
+    typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
+  	typedef boost::graph_traits<Graph>::edge_descriptor Edge;
+	typedef boost::color_traits<boost::default_color_type> Color;
+	typedef std::vector<boost::default_color_type> ColorVec;
+
+	typedef property_map<Graph, vertex_index_t>::type IndexMap;
+	typedef iterator_property_map<std::vector<Vertex>::iterator, IndexMap> PredMap;
+
 	struct TTask
 	{
 		unsigned lineno;
@@ -126,6 +137,7 @@ namespace klee {
 			:lineno(_lineno),funcname(_funcname),strategy(_strategy){}
 	};
 
+>>>>>>>>>>>>>>>>>>>> File 1
 
     typedef std::map<std::string, std::vector<TTask> > defectList;
     typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property,
@@ -136,6 +148,9 @@ namespace klee {
 	typedef std::vector<boost::default_color_type> ColorVec;
 
 	
+>>>>>>>>>>>>>>>>>>>> File 2
+>>>>>>>>>>>>>>>>>>>> File 3
+<<<<<<<<<<<<<<<<<<<<
 	struct TChoiceItem
     {
     	TChoiceItem(llvm::Instruction *_Inst, llvm::Instruction* _chosenInst, int _brChoice, const InstructionInfo *_brinfo)
@@ -186,14 +201,16 @@ namespace klee {
     BasicBlock *FindTarget(std::string file, TTask line, BasicBlock **pstartBB);
     void BuildGraph(std::string file);
     //void getDefectList(std::string docname, defectList *res);
-    void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList);
+    void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList, PredMap domTreePredMap);
     BasicBlock *findCEofSingleBB(BasicBlock *targetB, TCList &ceList);
+    BasicBlock *findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &ceList, PredMap domTreePredMap);
     
     void GetCEList(BasicBlock *tBB, BasicBlock *rootBB, TCList &ceList);
 
     void addBBEdges(llvm::BasicBlock *BB);
     BasicBlock *getBB(Vertex v);
-    void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target, Graph &graph, std::string strategy);
+    void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target,
+    		Graph &graph, std::string strategy, PredMap &domTreePredMap);
 
 	std::string getBBName(Vertex v);
 	void PrintDotGraph();
