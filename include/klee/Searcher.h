@@ -166,7 +166,8 @@ namespace klee {
     //bool reachgoal;
     llvm::Instruction *GoalInst;
     std::vector<ExecutionState*> states;
-	
+	ExecutionState *goales;	
+
     bool updateWeights;
 	DiscretePDF<ExecutionState*> *qstates;
 	double getWeight(ExecutionState*);

@@ -443,11 +443,11 @@ CEKSearcher::~CEKSearcher()
 
 #ifdef TEST
 ExecutionState &CEKSearcher::selectState() {
-	//if(qstates->empty()!=true)
-  		return *qstates->choose(theRNG.getDoubleL());
+	return *qstates->choose(theRNG.getDoubleL());
 }
 
 #else
+//Obsolete
 ExecutionState &CEKSearcher::selectState() {
 	unsigned flips = 0, bits = 0;
 	PTree::Node *n = executor.processTree->root;
@@ -570,75 +570,68 @@ void CEKSearcher::update(ExecutionState *current,
                          const std::set<ExecutionState*> &removedStates) {
 
 	bool reach = false;
-	if(!reachgoal)
+
+	if(current && current->pc()->inst == GoalInst)
 	{
-		if(current && current->pc()->inst == GoalInst)
-		{
-			LOG(INFO) << "REACH TARGET";
-			std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
-			//reachgoal++;
-		}		
+		LOG(INFO) << "REACH TARGET";
+		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
+		goales = current;			
+	}		
 
-		if(current && updateWeights && !removedStates.count(current))
-		{
-			std::cerr << "update qstate @update\n";
-			qstates->update(current, this->getWeight(current));
-		}
+	if(current && updateWeights && !removedStates.count(current))
+	{
+		qstates->update(current, this->getWeight(current));
+	}
 
-		for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
-				ie = addedStates.end(); it != ie; ++it)
+	for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
+			ie = addedStates.end(); it != ie; ++it)
+	{
+		bool found = false;
+		ExecutionState *es = *it;
+		for(std::vector<Instruction *>::const_iterator cit = purnlist.begin(),
+			cie = purnlist.end(); cit != cie; ++cit)
 		{
-			bool found = false;
-			ExecutionState *es = *it;
-			for(std::vector<Instruction *>::const_iterator cit = purnlist.begin(),
-					cie = purnlist.end(); cit != cie; ++cit)
+			Instruction *ci = *cit;
+
+			//TODO: TEST HERE!
+			for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
 			{
-				Instruction *ci = *cit;
-
-				//TODO: TEST HERE!
-				for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
+				if(tcit->chosenInst == es->pc()->inst)
 				{
-					if(tcit->chosenInst == es->pc()->inst)
-					{
-						std::cerr << ci << " reach CE choice!\n";
-						reach = true;
-						break;
-					}
-				}
-
-				if(ci == es->pc()->inst)
-				{
-					std::cerr << "\n\nreach deletepath! " << ci << "\n\n";
-					found = true;
+					std::cerr << ci << " reach CE choice!\n";
+					reach = true;
 					break;
 				}
 			}
 
-			if(!found)
-				qstates->insert(es, this->getWeight(es));
+			if(ci == es->pc()->inst)
+			{
+				std::cerr << "\n\nreach deletepath! " << ci << "\n\n";
+				found = true;
+				break;
+			}
 		}
-	}
-	else
-	{
-		executor.setHaltExecution(true);
+
+		//do not add into qstates if es appears in the purning state
+		if(!found)
+			qstates->insert(es, this->getWeight(es));
 	}
 
-	//do not remove when reach goal
 	for(std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
 		ie = removedStates.end(); it != ie; ++it)
 	{
 		ExecutionState *res = *it;
 		qstates->remove(*it);
-		if(res->pc()->inst == GoalInst)
+		//when the goal execution states terminates. The whole program exist
+		if(res == goales)
 		{
 			reachgoal++;
-			std::cerr << "halt\n";
-			//TODO where is the global ending?
+			std::cerr << "==============halt================\n";
 			executor.setHaltExecution(true);
 		}
 	}
 	
-	
+	std::cerr << "\n";
 }
 #else
 void CEKSearcher::update(ExecutionState *current,
