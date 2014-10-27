@@ -362,7 +362,7 @@ void CEKSearcher::Init(std::string defectFile)
         	BasicBlock *startBB = NULL;
         	TTask task = *lit;
             std::cerr << "Looking for '" << file << "'(" << task.lineno << ") from func:"
-            		<< task.funcname << " with strategy " << task.strategy << ")\n";
+            		<< task.funcname << " with strategy: " << task.strategy << "\n";
 
             bb = FindTarget(file, task, &startBB);
             
@@ -626,7 +626,7 @@ void CEKSearcher::update(ExecutionState *current,
 		if(res == goales)
 		{
 			reachgoal++;
-			std::cerr << "==============halt================\n";
+			std::cerr << "\n==============\nhalt\n================\n";
 			executor.setHaltExecution(true);
 		}
 	}
@@ -783,7 +783,6 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path,
 
     lengauer_tarjan_dominator_tree(graph, root, domTreePredMap);
     std::vector<int> idom(num_vertices(graph));
-	//std::map<BasicBlock*, BasicBlock*> idommap;
     graph_traits<Graph>::vertex_iterator uItr, uEnd;
 
     for(tie(uItr, uEnd) = vertices(graph); uItr!=uEnd; ++uItr)
@@ -794,20 +793,14 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path,
 			BasicBlock *domnode = getBB(get(domTreePredMap, *uItr));		
 			BasicBlock *node = getBB(*uItr);	
 			idomMap.insert(std::make_pair(node, domnode));
-			std::cerr << "node:" <<  executor.kmodule->infos->getInfo(node->begin()).line << " domed by node:" << executor.kmodule->infos->getInfo(domnode->begin()).line << "\n";
 		}
 		else
 		{
 			idom[get(indexmap, *uItr)] = (std::numeric_limits<int>::max)();
 		}
-		//std::cerr << "0";
     }
 
-	copy(idom.begin(), idom.end(), std::ostream_iterator<int>(std::cerr, "\n"));
-	
-
-	std::cerr << "\n";
-	std::cerr << " end\n";
+	//copy(idom.begin(), idom.end(), std::ostream_iterator<int>(std::cerr, "\n"));
 }
 
 BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **pstartBB)
@@ -993,7 +986,7 @@ void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tB
 	}
 }
 
-
+//OBSOLETE
 //TODO mix into one function, start traversal from main to target
 void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceList)
 {
@@ -1124,7 +1117,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 		frontB = bbque.front();
 		bbque.pop();
 
-		std::cerr << "@line:" << executor.kmodule->infos->getInfo(frontB->begin()).line << ":\n";
+		//std::cerr << "@line:" << executor.kmodule->infos->getInfo(frontB->begin()).line << ":\n";
 
 		int ccount = 0;
 		for(pred_iterator ppi=pred_begin(frontB); ppi!=pred_end(frontB); ++ppi)
@@ -1165,7 +1158,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 					if(trueBB == frontB)
 					{
 						//TODO: TEST HERE!
-						std::cerr << "true side, CE:(" << executor.kmodule->infos->getInfo(frontB->begin()).line << "," << executor.kmodule->infos->getInfo(predB->begin()).line << ")\n";
+						std::cerr << "true side, CE:(" << executor.kmodule->infos->getInfo(predB->begin()).line << "," << executor.kmodule->infos->getInfo(frontB->begin()).line  << ")\n";
 
 						TChoiceItem cItem = TChoiceItem(inst, trueBB->getFirstNonPHIOrDbg(),
 							(int)CEKSearcher::TRUE, &executor.kmodule->infos->getInfo(inst));//1:true
@@ -1177,7 +1170,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 					else
 					{
 						//TODO: TEST HERE!
-						std::cerr << "false side, CE:(" << executor.kmodule->infos->getInfo(frontB->begin()).line << "," << executor.kmodule->infos->getInfo(predB->begin()).line << ")\n";
+						std::cerr << "false side, CE:(" << executor.kmodule->infos->getInfo(predB->begin()).line  << "," << executor.kmodule->infos->getInfo(frontB->begin()).line << ")\n";
 
 						TChoiceItem cItem = TChoiceItem(inst, falseBB->getFirstNonPHIOrDbg(),
 						(int)CEKSearcher::FALSE, &executor.kmodule->infos->getInfo(inst));//0:false
@@ -1189,7 +1182,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 			}
 			else
 			{
-				std::cerr << "loop:";
+				//std::cerr << "loop:";
 				std::cerr << executor.kmodule->infos->getInfo(predB->begin()).line << "\n";
 			}
 		}
