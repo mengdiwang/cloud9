@@ -266,6 +266,7 @@ void CEKSearcher::Init(std::string defectFile)
 	updateWeights = true; //wmd TODO to test the performance
 
 	reachgoal = 0;
+	goales = NULL;
     llvm::Module *M = executor.kmodule->module;
     //klee::KModule *km = executor.kmodule;
     cepaths.clear();

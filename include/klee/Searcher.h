@@ -228,7 +228,7 @@ namespace klee {
     ExecutionState &selectState();
     void update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
                 const std::set<ExecutionState*> &removedStates);
-    bool empty() {return states.empty();}
+    bool empty() {return qstates.empty();}
     void printName(std::ostream &os)
     {
       os << "CEKSearcher\n";
