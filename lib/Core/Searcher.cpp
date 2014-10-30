@@ -613,7 +613,7 @@ void CEKSearcher::update(ExecutionState *current,
 
 			if(ci == es->pc()->inst)
 			{
-				std::cerr << "\n\nreach deletepath! " << ci << "\n\n";
+				std::cerr << "\nreach deletepath! " << ci << "\n";
 				found = true;
 				break;
 			}
@@ -638,7 +638,7 @@ void CEKSearcher::update(ExecutionState *current,
 		}
 	}
 	
-	std::cerr << "\n";
+	//std::cerr << "\n";
 }
 #else
 void CEKSearcher::update(ExecutionState *current,
@@ -665,11 +665,11 @@ void CEKSearcher::update(ExecutionState *current,
 		{
 			if(current && tcit->chosenInst == current->pc()->inst)
 			{
-				std::cerr << "[Current state reach es]\n";
+				//std::cerr << "[Current state reach es]\n";
 			}
 			if(current && tcit->Inst == current->pc()->inst)
 			{
-				std::cerr << "[Critical Branch reach]\n";
+				//std::cerr << "[Critical Branch reach]\n";
 			}
 		}
 	}
@@ -846,7 +846,7 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
 
 			if(instfname != stdfname)
 				break;
-        	//std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
+        	std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
 			//std::cerr << "reach:'" << filename << "(" << instfname << ")'(" << linenolow << "," << lineno << ")\n";
         	if(task.lineno > linenolow && task.lineno <= lineno && instfname == stdfname)//change to range search
 			//if(lineno == line && filename == file)
@@ -1060,7 +1060,7 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 					{
 						std::cerr << "true side, CE:(" << executor.kmodule->infos->getInfo(frontB->begin()).line << "," << executor.kmodule->infos->getInfo(predB->begin()).line << ")\n";
 					}
-					else
+					else if(falseBB == frontB)
 					{
 						std::cerr << "false side, CE:(" << executor.kmodule->infos->getInfo(frontB->begin()).line << "," << executor.kmodule->infos->getInfo(predB->begin()).line << ")\n";
 					}
@@ -1163,6 +1163,8 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 					Instruction *inst = dyn_cast<Instruction>(brInst);
 					BasicBlock *trueBB = brInst->getSuccessor(0);
 					BasicBlock *falseBB = brInst->getSuccessor(1);
+					std::cerr << "true:" << executor.kmodule->infos->getInfo(trueBB->begin()).line << "\n"
+						<< "false:" << executor.kmodule->infos->getInfo(falseBB->begin()).line << "\n";
 					if(trueBB == frontB)
 					{
 						//TODO: TEST HERE!
@@ -1175,7 +1177,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 						ceList.push_back(cItem);
 
 					}
-					else
+					else if(falseBB == frontB)
 					{
 						//TODO: TEST HERE!
 						std::cerr << "false side, CE:(" << executor.kmodule->infos->getInfo(predB->begin()).line  << "," << executor.kmodule->infos->getInfo(frontB->begin()).line << ")\n";
@@ -1190,7 +1192,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 			}
 			else
 			{
-				//std::cerr << "loop:";
+				std::cerr << "loop:";
 				std::cerr << executor.kmodule->infos->getInfo(predB->begin()).line << "\n";
 			}
 		}
@@ -1392,12 +1394,12 @@ double CEKSearcher::getWeight(ExecutionState* es)
 	{
 		if(es && tcit->chosenInst == es->pc()->inst)
 		{
-				std::cerr << "[Current state reach es]\n";
+				//std::cerr << "[Current state reach es]\n";
 				es->weight += 1;
 		}
 		if(es && tcit->Inst == es->pc()->inst)
 		{
-				std::cerr << "[Critical Branch reach]\n";
+				//std::cerr << "[Critical Branch reach]\n";
 		}
 	}
 	if(es && es->pc()->inst == GoalInst)
