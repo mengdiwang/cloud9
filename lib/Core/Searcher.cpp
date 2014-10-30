@@ -395,7 +395,8 @@ void CEKSearcher::Init(std::string defectFile)
 			//idom use llvm idom or boost idom, boost idom should be fit into each function
 
             findSinglePath(&path, rootv, targetv, bbG, task.strategy, idomMap);
-            
+			//findSinglePath(&path, rootv, targetv, bbMap, tastk.strategy, idomMap);
+
             BasicBlock *tmpb = NULL;
             for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
             {
@@ -666,7 +667,7 @@ void CEKSearcher::update(ExecutionState *current,
 			}
 		}
 	}
-	std::cerr<<"\n";
+	//std::cerr<<"\n";
 
   for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
 		  ie = addedStates.end(); it!=ie; ++it)
@@ -1117,7 +1118,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 		frontB = bbque.front();
 		bbque.pop();
 
-		//std::cerr << "@line:" << executor.kmodule->infos->getInfo(frontB->begin()).line << ":\n";
+		std::cerr << "@line:" << executor.kmodule->infos->getInfo(frontB->begin()).line;
 
 		int ccount = 0;
 		for(pred_iterator ppi=pred_begin(frontB); ppi!=pred_end(frontB); ++ppi)
@@ -1127,6 +1128,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 		if(ccount>=2)
 		{
 			//idom
+			std::cerr << " idom ";
 			BasicBlock *domnode = idomMap[frontB];
 			bbque.push(domnode);
 			//TODO: TEST HERE!
@@ -1187,6 +1189,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 			}
 		}
 		}
+		std::cerr << "\n";
 	}
 
 	if(frontB == NULL)
@@ -1378,7 +1381,7 @@ std::string CEKSearcher::getBBName(Vertex v)
 
 double CEKSearcher::getWeight(ExecutionState* es)
 {
-	std::cerr << "\n";
+	//std::cerr << "\n";
 	for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
 	{
 		if(es && tcit->chosenInst == es->pc()->inst)
@@ -1394,7 +1397,7 @@ double CEKSearcher::getWeight(ExecutionState* es)
 	if(es && es->pc()->inst == GoalInst)
 		es->weight += 10;
 
-	std::cerr << es->pc()->inst << " weight:" << es->weight << "\n";
+	//std::cerr << es->pc()->inst << " weight:" << es->weight << "\n";
 
 	return es->weight;
 }

@@ -190,7 +190,9 @@ namespace klee {
 
     Graph bbG;
     std::map<BasicBlock*, Vertex> bbMap;
-      
+    Graph funcG;
+	std::map<Function*, Vertex> funcMap;
+
     BasicBlock *FindTarget(std::string file, TTask line, BasicBlock **pstartBB);
     void BuildGraph(std::string file);
     //void getDefectList(std::string docname, defectList *res);
