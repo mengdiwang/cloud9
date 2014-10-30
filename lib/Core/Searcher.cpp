@@ -260,6 +260,11 @@ bool CEKSearcher::InWhiteList(llvm::Function* fit, std::string stdname)
 //-------------CEKSearcher-------------//
 //-------------------------------------//
 
+bool CEKSearcher::empty()
+{
+	return qstates->empty();
+}
+
 void CEKSearcher::Init(std::string defectFile)
 {
 	purnlist.clear();
@@ -971,9 +976,9 @@ void CEKSearcher::GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tB
 		if(*vit == tBB || isCallsite.count(frontB) > 0)
 		{
 			list.clear();
-			if(!fset.count(frontB->getParent()))
+			if(!fset.count(frontB->getParent()))//IMPORTANT HERE we eliminate the duplication functions
 			{
-
+				std::cerr << frontB->getParent()->getName().str() << "\n";
 				//TODO: TEST HERE!
 #ifdef TEST
 				findCEofSingleBBWithIdom(frontB, list, idomMap);
