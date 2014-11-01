@@ -447,7 +447,6 @@ CEKSearcher::~CEKSearcher()
 	delete qstates;
 }
 
-
 #ifdef TEST
 ExecutionState &CEKSearcher::selectState() {
 	return *qstates->choose(theRNG.getDoubleL());
@@ -835,6 +834,32 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
     		}
     	}
 
+    	Function *F = &*fit;
+    	for(Function::iterator bit = F->begin(); bit!=F->end(); ++bit)
+    	{
+    		BasicBlock *BB = (BasicBlock *)&*bit;
+    		Instruction *begin_ins = BB->getFirstNonPHIOrDbg();
+    		Instruction *end_ins = dyn_cast<Instruction>(BB->getTerminator());
+
+    		std::string filename = km->infos->getInfo(begin_ins).file;
+    		std::string instfname = extractfilename(filename);
+    		std::string stdfname = extractfilename(file);
+    		if(instfname != stdfname)
+    			break;
+
+    		int begin_line = executor.kmodule->infos->getInfo(begin_ins).line;
+			int end_line = executor.kmodule->infos->getInfo(end_ins).line;
+
+			if(task.lineno >= begin_line && task.lineno <= end_line)
+			{
+				GoalInst = end_ins;
+				bb = BB;
+			}
+			std::cerr << "reach:'"<<filename << "'("<< begin_line << "-" << end_line << ")\n";
+
+    	}
+
+    	/*
         for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
         {
 			unsigned linenolow = 0;        
@@ -867,8 +892,10 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
         	}
         	linenolow = lineno;
         }
+        */
     }
-	std::cerr << "offset:" << offset << "\n";
+	//std::cerr << "offset:" << offset << "\n";
+
     return bb;
 }
 
