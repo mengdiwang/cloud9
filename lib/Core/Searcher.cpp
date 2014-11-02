@@ -838,7 +838,7 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
     	for(Function::iterator bit = F->begin(); bit!=F->end(); ++bit)
     	{
     		BasicBlock *BB = (BasicBlock *)&*bit;
-    		Instruction *begin_ins = BB->getFirstNonPHIOrDbg();
+			Instruction *begin_ins = BB->getFirstNonPHIOrDbg();
     		Instruction *end_ins = dyn_cast<Instruction>(BB->getTerminator());
 
     		std::string filename = km->infos->getInfo(begin_ins).file;
@@ -849,6 +849,8 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
 
     		int begin_line = executor.kmodule->infos->getInfo(begin_ins).line;
 			int end_line = executor.kmodule->infos->getInfo(end_ins).line;
+			if(begin_line > end_line)
+				std::swap(begin_line, end_line);
 
 			if(task.lineno >= begin_line && task.lineno <= end_line)
 			{
@@ -856,7 +858,6 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
 				bb = BB;
 			}
 			std::cerr << "reach:'"<<filename << "'("<< begin_line << "-" << end_line << ")\n";
-
     	}
 
     	/*
