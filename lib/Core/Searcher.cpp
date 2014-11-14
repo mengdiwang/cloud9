@@ -575,8 +575,6 @@ void CEKSearcher::update(ExecutionState *current,
                          const std::set<ExecutionState*> &addedStates,
                          const std::set<ExecutionState*> &removedStates) {
 
-	bool reach = false;
-
 	if(current && current->pc()->inst == GoalInst)
 	{
 		LOG(INFO) << "REACH TARGET";
@@ -594,22 +592,22 @@ void CEKSearcher::update(ExecutionState *current,
 	{
 		bool found = false;
 		ExecutionState *es = *it;
+			//TODO: TEST HERE!
+		/*
+		for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
+		{
+			if(tcit->chosenInst == es->pc()->inst)
+			{
+				std::cerr << es-pc()->inst << " reach CE choice!\n";
+				reach = true;
+				break;
+			}
+		}
+		*/
 		for(std::vector<Instruction *>::const_iterator cit = purnlist.begin(),
 			cie = purnlist.end(); cit != cie; ++cit)
 		{
 			Instruction *ci = *cit;
-
-			//TODO: TEST HERE!
-			for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
-			{
-				if(tcit->chosenInst == es->pc()->inst)
-				{
-					std::cerr << ci << " reach CE choice!\n";
-					reach = true;
-					break;
-				}
-			}
-
 			if(ci == es->pc()->inst)
 			{
 				std::cerr << "\nreach deletepath! " << ci << "\n";
@@ -838,6 +836,7 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
     	for(Function::iterator bit = F->begin(); bit!=F->end(); ++bit)
     	{
     		BasicBlock *BB = (BasicBlock *)&*bit;
+			std::cerr << BB << " ";
 			Instruction *begin_ins = BB->getFirstNonPHIOrDbg();
     		Instruction *end_ins = dyn_cast<Instruction>(BB->getTerminator());
 
@@ -860,10 +859,18 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
 			std::cerr << "reach:'"<<filename << "'("<< begin_line << "-" << end_line << ")\n";
     	}
 
-    	/*
         for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
         {
-			unsigned linenolow = 0;        
+			std::string filename = km->infos->getInfo(&*it).file;
+			std::string instfname = extractfilename(filename);
+			std::string stdfname = extractfilename(file);   
+			
+			if(instfname != stdfname)
+				break;
+
+			std::cerr << &*it->getParent() << " "<<(&*it) << " "<<km->infos->getInfo(&*it).line << "\n";
+		}
+		/*	unsigned linenolow = 0;        
 			unsigned lineno= km->infos->getInfo(&*it).line;
 			std::string filename = km->infos->getInfo(&*it).file;
 
@@ -1165,6 +1172,7 @@ BasicBlock *CEKSearcher::findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &c
 			std::cerr << " idom ";
 			BasicBlock *domnode = idomMap[frontB];
 			bbque.push(domnode);
+			std::cerr << " push line:" << executor.kmodule->infos->getInfo(domnode->begin()).line; 
 			//TODO: TEST HERE!
 		}
 		else
@@ -1422,18 +1430,19 @@ double CEKSearcher::getWeight(ExecutionState* es)
 	{
 		if(es && tcit->chosenInst == es->pc()->inst)
 		{
-				//std::cerr << "[Current state reach es]\n";
-				es->weight += 1;
+				std::cerr << "[Current state reach es]\n";
+				es->weight += 5;
 		}
 		if(es && tcit->Inst == es->pc()->inst)
 		{
-				//std::cerr << "[Critical Branch reach]\n";
+				std::cerr << "[Critical Branch reach]\n";
 		}
 	}
+	//TODO add substract weight here
 	if(es && es->pc()->inst == GoalInst)
 		es->weight += 10;
 
-	//std::cerr << es->pc()->inst << " weight:" << es->weight << "\n";
+	std::cerr << es->pc()->inst << " weight:" << es->weight << "\n";
 
 	return es->weight;
 }
