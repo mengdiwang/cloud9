@@ -621,6 +621,8 @@ void CEKSearcher::update(ExecutionState *current,
 		//do not add into qstates if es appears in the purning state
 		if(!found)
 			qstates->insert(es, this->getWeight(es));
+		else
+			qstates->insert(es, this->resetWeight(es));
 	}
 
 	for(std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
@@ -1415,7 +1417,13 @@ std::string CEKSearcher::getBBName(Vertex v)
 	return res;
 }
 
-double CEKSearcher::getWeight(ExecutionState* es)
+double CEKSearcher::resetWeight(ExecutionState *es)
+{
+	es->weight = 1.0;
+	return es->weight;
+}
+
+double CEKSearcher::getWeight(ExecutionState *es)
 {
 	//std::cerr << "\n";
 	for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
