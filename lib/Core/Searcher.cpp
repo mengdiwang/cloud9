@@ -821,6 +821,7 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
 		//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
     	//for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
 
+    	std::cerr << "fit name "<< fit->getName().str() << "\n";
     	if(fit->getName().str()==task.funcname)//TODO change to user defined string
     	{
     		if(*pstartBB!=NULL)
