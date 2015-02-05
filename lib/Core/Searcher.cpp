@@ -1450,7 +1450,7 @@ double CEKSearcher::getWeight(ExecutionState *es)
 	if(es && es->pc()->inst == GoalInst)
 		es->weight += 10;
 
-	std::cerr << es->pc()->inst << " weight:" << es->weight << "\n";
+	//std::cerr << es->pc()->inst << " weight:" << es->weight << "\n";
 
 	return es->weight;
 }
