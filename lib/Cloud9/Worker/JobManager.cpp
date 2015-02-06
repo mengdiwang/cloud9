@@ -107,7 +107,7 @@ cl::opt<bool> StratOracle("c9-job-oracle", cl::desc("Use the almighty oracle"));
 cl::opt<bool> StratFaultInj("c9-job-fault-inj", cl::desc("Use fault injection"));
 cl::opt<bool> StratLimitedFlow("c9-job-lim-flow", cl::desc("Use limited states flow"));
 //wmd
-cl::opt<std::string> StratCEKInput("c9-cek-line", cl::desc("cek line file"));
+cl::opt<bool> StratCEKInput("c9-cek-line", cl::desc("cek line file"));
 cl::opt<std::string> StratEDInput("c9-ed-line", cl::desc("ed line file"));
 
 // Partition-based strategies
@@ -473,11 +473,11 @@ StateSelectionStrategy *JobManager::createBaseStrategy() {
       stateStrat = new RandomPathStrategy(tree);
   }
   //wmd
-  if(StratCEKInput != "")
+  if(StratCEKInput)
   {
 	  LOG(INFO) << "CEK strategy";
 	  stateStrat = new CEKStrategy(tree,
-		         symbEngine, StratCEKInput);
+		         symbEngine);
   }
   else if(StratEDInput !="")
   {
@@ -663,7 +663,7 @@ void JobManager::processLoop(bool allowGrowth, bool blocking,
 ExecutionJob* JobManager::selectNextJob(boost::unique_lock<boost::mutex> &lock,
     unsigned int timeOut) {
   ExecutionJob *job = selectNextJob();
-  if(StratCEKInput!="" || StratEDInput!="")
+  if(StratCEKInput|| StratEDInput!="")
   {
 	  //if(job == NULL)
 	  //  terminationRequest = true;
