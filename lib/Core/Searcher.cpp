@@ -831,7 +831,7 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
     	//for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
 
 		//find the root basic block, if this returns null, will use main block
-    	std::cerr << "task.funcname: " << task.funcname << "fit name "<< fit->getName().str() << "\n";
+    	//std::cerr << "task.funcname: " << task.funcname << "fit name "<< fit->getName().str() << "\n";
     	if(fit->getName().str()==task.funcname)//TODO change to user defined string
     	{
     		if(*pstartBB!=NULL)
@@ -840,7 +840,7 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
     		}
     		else
     		{
-    			std::cerr << "reach func the " << task.funcname << "\n";
+    			std::cerr << "Reach the entrance func the " << task.funcname << "\n";
     			*pstartBB = &(fit->getEntryBlock());
     		}
     	}
@@ -858,10 +858,11 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
     		std::string filename = km->infos->getInfo(begin_ins).file;
     		std::string instfname = extractfilename(filename);
     		std::string stdfname = extractfilename(file);
-    		std::cerr << "filename:" << filename << " instfname:" << instfname
-					<< " stdfname:" << stdfname << "\n";
 			if(instfname != stdfname)
     			break;
+
+    		std::cerr /*<< "filename:" << filename*/ << " instfname:" << instfname
+					<< " stdfname:" << stdfname << "\n";
 
     		int begin_line = executor.kmodule->infos->getInfo(begin_ins).line;
 			int end_line = executor.kmodule->infos->getInfo(end_ins).line;
@@ -872,10 +873,10 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
 			{
 				GoalInst = end_ins;
 				bb = BB;
+				std::cerr << "Reach:'"<<filename << "'("<< begin_line << "-" << end_line << ")\n";
 			}
-			std::cerr << "reach:'"<<filename << "'("<< begin_line << "-" << end_line << ")\n";
     	}
-
+/*
         for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
         {
 			std::string filename = km->infos->getInfo(&*it).file;
@@ -885,8 +886,9 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
 			if(instfname != stdfname)
 				break;
 
-			std::cerr << &*it->getParent() << " "<<(&*it) << " "<<km->infos->getInfo(&*it).line << "\n";
+			//std::cerr << &*it->getParent() << " "<<(&*it) << " "<<km->infos->getInfo(&*it).line << "\n";
 		}
+*/
 		/*	unsigned linenolow = 0;        
 			unsigned lineno= km->infos->getInfo(&*it).line;
 			std::string filename = km->infos->getInfo(&*it).file;
