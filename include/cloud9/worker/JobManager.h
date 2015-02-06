@@ -83,7 +83,7 @@ private:
 
   StateSelectionStrategy *createCoverageOptimizedStrat(StateSelectionStrategy *base);
   //wmd
-  StateSelectionStrategy *createCEKStrat(StateSelectionStrategy *base, std::string file);
+  StateSelectionStrategy *createCEKStrat(StateSelectionStrategy *base/*, std::string file*/);
   StateSelectionStrategy *createEDStrat(StateSelectionStrategy *base, std::string file);
 
   //~

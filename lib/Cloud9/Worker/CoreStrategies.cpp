@@ -319,10 +319,10 @@ WeightedRandomStrategy::~WeightedRandomStrategy() {
 }
 
 //WMD 20140604
-CEKStrategy::CEKStrategy(WorkerTree *_tree, SymbolicEngine *_engine, std::string cekfile) : KleeStrategy(_tree)
+CEKStrategy::CEKStrategy(WorkerTree *_tree, SymbolicEngine *_engine/*, std::string cekfile*/) : KleeStrategy(_tree)
 {
 	klee::Executor *executor = dynamic_cast<klee::Executor*>(_engine);
-	searcher = new CEKSearcher(*executor, cekfile);
+	searcher = new CEKSearcher(*executor/*, cekfile*/);
 }
 
 CEKStrategy::~CEKStrategy()

@@ -225,7 +225,7 @@ public:
 class CEKStrategy:public KleeStrategy
 {
 public:
-	CEKStrategy(WorkerTree *_tree, SymbolicEngine *_engine, std::string cekfile);
+	CEKStrategy(WorkerTree *_tree, SymbolicEngine *_engine/*, std::string cekfile*/);
 	virtual ~CEKStrategy();
 };
 

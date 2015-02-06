@@ -175,12 +175,12 @@ StateSelectionStrategy *JobManager::createCoverageOptimizedStrat(StateSelectionS
 }
 
 //Merge with cek
-StateSelectionStrategy *JobManager::createCEKStrat(StateSelectionStrategy *base, std::string file) {
+StateSelectionStrategy *JobManager::createCEKStrat(StateSelectionStrategy *base/*, std::string file*/) {
   std::vector<StateSelectionStrategy*> strategies;
 
   strategies.push_back(new CEKStrategy(
          tree,
-         symbEngine, file));
+         symbEngine/*, file*/));
   strategies.push_back(base);
   return new TimeMultiplexedStrategy(strategies);
 }
