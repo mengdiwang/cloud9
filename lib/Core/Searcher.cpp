@@ -63,13 +63,16 @@ namespace {
   DebugLogMerge("debug-log-merge");
 
   cl::opt<std::string>
+  cek_test_file("cek-test-file");
+
+  cl::opt<std::string>
   cek_start_func("cek-start-func");
 
   cl::opt<std::string>
   cek_strategy("cek-strategy");
 
   cl::opt<int>
-  cek_line("cek-lino");
+  cek_lineno("cek-lineno");
 }
 
 namespace klee {
@@ -281,7 +284,7 @@ bool CEKSearcher::empty()
 	return qstates->empty();
 }
 
-void CEKSearcher::Init(std::string defectFile)
+void CEKSearcher::Init(/*std::string defectFile*/)
 {
 	purnlist.clear();
 	updateWeights = true; //wmd TODO to test the performance
@@ -294,146 +297,93 @@ void CEKSearcher::Init(std::string defectFile)
     ceStateMap.clear();
     GoalInst = NULL;
     forbitSet.clear();
-    defectList dl;
-    getDefectList(defectFile, &dl);
-    if(dl.size() <= 0)
+
+    if(cek_test_file == "" || cek_start_func=="" || cek_strategy=="" || cek_lineno<=0)
     {
-        std::cerr << "No entry in defectFile.txt\n";
-        return;
+    	std::cerr << "No test target entry\n";
+     	return;
     }
-    
-    /*
-     * statics of blocks
-     */
-    /*
-	for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
-	{
-		int count = 0;
-		for(llvm::Function::iterator bit=fit->begin(); bit!=fit->end(); ++bit)
-		{
-			count ++;
-		}
-		std::cerr << count << " blocks in function " << fit->getName().str() << "\n";
-	}
-	*/
 
     TCList ceList;
     std::vector<Vertex> path;
-    
-    /*
-     * move inside the loops to build graph guide with filename
-    BuildGraph();
-    
-    BasicBlock *rootBB = NULL;
-    for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
-    {
-    	if(fit->getName().str()=="main")
-    	{
-    		if(rootBB!=NULL)
-    		{
-    			std::cerr <<"Multi main\n";
-    		}
-    		else
-    		{
-				std::cerr << "get the main\n";
-    			rootBB = &(fit->getEntryBlock());
-    		}
-    	}
-    }
-    */
-    std::vector<TTask>lines;
     std::vector<BasicBlock *> bbpath;
-	std::cerr <<"size of defectList:" << dl.size() <<"\n";
-    for(defectList::iterator dit=dl.begin(); dit!=dl.end(); ++dit)
+	ceList.clear();
+	std::string file = cek_test_file;
+	BasicBlock *bb = NULL;
+
+	BuildGraph(file);
+
+	BasicBlock *rootBB = NULL;
+	for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
+	{
+		if(fit->getName().str()=="main")//TODO change to user defined string
+		{
+			if(rootBB!=NULL)
+			{
+				std::cerr <<"Multi main\n";
+			}
+			else
+			{
+				std::cerr << "get the main\n";
+				rootBB = &(fit->getEntryBlock());
+			}
+		}
+	}
+
+	if(rootBB == NULL)
+	{
+		std::cerr << "No main found\n";
+		continue;
+	}
+
+    IdomMap idomMap;//IDOM map
+
+    BasicBlock *startBB = NULL;
+    TTask task = TTask(cek_lineno, cek_start_func, cek_strategy);
+	std::cerr << "-----!!----\n";
+    std::cerr << "Looking for '" << file << "'(" << task.lineno << ") from func:"
+    		<< task.funcname << " with strategy: " << task.strategy << "\n";
+
+	std::cerr << "--------------\n";
+    bb = FindTarget(file, task, &startBB);
+    std::cerr << "--------------\n";
+    if(bb == NULL)
+	{
+		std::cerr << "No target function found\n";
+        continue;
+	}
+
+    std::cerr << "inter-Blocks Dijkstra\n";
+    Vertex rootv;
+    if(startBB == NULL)
     {
-    	ceList.clear();
-        std::string file = dit->first;
-        lines = dit->second;
-        BasicBlock *bb = NULL;
-		std::cerr << "size of list to find:" << lines.size() << "\n";
-
-		BuildGraph(file);
-
-		BasicBlock *rootBB = NULL;
-		for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
-		{
-			if(fit->getName().str()=="main")//TODO change to user defined string
-			{
-				if(rootBB!=NULL)
-				{
-					std::cerr <<"Multi main\n";
-				}
-				else
-				{
-					std::cerr << "get the main\n";
-					rootBB = &(fit->getEntryBlock());
-				}
-			}
-		}
-
-		if(rootBB == NULL)
-		{
-			std::cerr << "No main found\n";
-			continue;
-		}
-
-        for(std::vector<TTask>::iterator lit = lines.begin(); lit!=lines.end(); ++lit)
-		{
-        	IdomMap idomMap;//IDOM map
-
-        	BasicBlock *startBB = NULL;
-        	TTask task = *lit;
-			std::cerr << "-----!!----\n";
-            std::cerr << "Looking for '" << file << "'(" << task.lineno << ") from func:"
-            		<< task.funcname << " with strategy: " << task.strategy << "\n";
-
-			std::cerr << "--------------\n";
-            bb = FindTarget(file, task, &startBB);
-            std::cerr << "--------------\n";
-            if(bb == NULL)
-			{
-				std::cerr << "No target function found\n";
-                continue;
-			}
-
-            std::cerr << "inter-Blocks Dijkstra\n";
-            Vertex rootv;
-            if(startBB == NULL)
-            {
-            	//GetCEList(bb, rootBB, ceList);
-            	rootv = bbMap[rootBB];
-            }
-            else
-            {
-            	//GetCEList(bb, startBB, ceList);
-            	rootv = bbMap[startBB];
-            }
-            //interprocedural
-
-            Vertex targetv = bbMap[bb];
-            path.clear();
-            bbpath.clear();
-
-			//TODO find call chain on the call graph(funcGraph) by userdefined heuristic method
-			//Iterate all the functions. In each function, bottom up traverse the idoms and preds put the CE into ce list
-			//idom use llvm idom or boost idom, boost idom should be fit into each function
-
-            findSinglePath(&path, rootv, targetv, bbG, task.strategy, idomMap);
-			//findSinglePath(&path, rootv, targetv, bbMap, tastk.strategy, idomMap);
-
-            BasicBlock *tmpb = NULL;
-            for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
-            {
-            	tmpb = getBB(*it);
-            	if(tmpb != NULL) bbpath.push_back(tmpb);
-            }
-            GetBBPathList(bbpath, bb, ceList, idomMap);
-            //cepaths.push_back(ceList);
-            cepaths.insert(cepaths.end(), ceList.begin(), ceList.end());
-
-            bb = NULL;	
-        }
+    	rootv = bbMap[rootBB];
     }
+    else
+    {
+    	rootv = bbMap[startBB];
+    }
+    //interprocedural
+
+    Vertex targetv = bbMap[bb];
+    path.clear();
+    bbpath.clear();
+	//TODO find call chain on the call graph(funcGraph) by userdefined heuristic method
+	//Iterate all the functions. In each function, bottom up traverse the idoms and preds put the CE into ce list
+	//idom use llvm idom or boost idom, boost idom should be fit into each function
+
+    findSinglePath(&path, rootv, targetv, bbG, task.strategy, idomMap);
+	
+    BasicBlock *tmpb = NULL;
+    for(std::vector<Vertex>::iterator it=path.begin(); it!=path.end(); ++it)
+    {
+    	tmpb = getBB(*it);
+    	if(tmpb != NULL) bbpath.push_back(tmpb);
+    }
+	GetBBPathList(bbpath, bb, ceList, idomMap);
+	cepaths.insert(cepaths.end(), ceList.begin(), ceList.end());
+
+	bb = NULL;
 
 	//for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
     for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
@@ -452,12 +402,12 @@ void CEKSearcher::Init(std::string defectFile)
     std::cerr <<"Preparation done\n";
 }
 
-CEKSearcher::CEKSearcher(Executor &_executor, std::string defectFile)
+CEKSearcher::CEKSearcher(Executor &_executor/*, std::string defectFile*/)
 		:executor(_executor),
 		 qstates(new DiscretePDF<ExecutionState*>()),
 		 miss_ctr(0)
 {
-	Init(defectFile);
+	Init(/*defectFile*/);
 }
 
 CEKSearcher::~CEKSearcher()
@@ -678,47 +628,34 @@ void CEKSearcher::update(ExecutionState *current,
 	//for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
 	for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
 	{
-		//for(std::vector<TChoiceItem>::iterator tcit=tit->begin(); tcit!=tit->end(); ++tcit)
+		if(current && tcit->chosenInst == current->pc()->inst)
 		{
-			if(current && tcit->chosenInst == current->pc()->inst)
-			{
-				//std::cerr << "[Current state reach es]\n";
-			}
-			if(current && tcit->Inst == current->pc()->inst)
-			{
-				//std::cerr << "[Critical Branch reach]\n";
-			}
+			//std::cerr << "[Current state reach es]\n";
+		}
+		if(current && tcit->Inst == current->pc()->inst)
+		{
+			//std::cerr << "[Critical Branch reach]\n";
 		}
 	}
 	//std::cerr<<"\n";
 
-  for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
+	for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
 		  ie = addedStates.end(); it!=ie; ++it)
-  {
-	  bool reach = false;
-	  ExecutionState *es = *it;
-	  //for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
-	  for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
-	  {
-		  //for(std::vector<TChoiceItem>::iterator tcit=tit->begin(); tcit!=tit->end(); ++tcit)
-		  {
-			  if(tcit->chosenInst == es->pc()->inst)
-			  {
-				  reach = true;
-				  break;
-			  }
-		  }
-	  }
-	  if(reach)
-		  count_ce++;
-  }
-	/*
-	if(addedStates.size()>0 || removedStates.size()>0)
 	{
-	  std::cerr << "add " << addedStates.size() << " states, remove " << removedStates.size() <<" states\n";
-	  std::cerr << "reach " << count_ce << " ce_states\n";
+		bool reach = false;
+		ExecutionState *es = *it;
+		for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
+		{
+			if(tcit->chosenInst == es->pc()->inst)
+			{
+				reach = true;
+				break;
+			}
+		}
+		if(reach)
+			count_ce++;
 	}
-	*/
+	
   //TODO wmd reach at states with critical edge
 
   for (std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
@@ -853,8 +790,6 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
     			*pstartBB = &(fit->getEntryBlock());
     		}
     	}
-
-
 
     	Function *F = &*fit;
     	for(Function::iterator bit = F->begin(); bit!=F->end(); ++bit)

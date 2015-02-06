@@ -182,7 +182,7 @@ namespace klee {
     int miss_ctr;
     std::map<TChoiceItem*, bool> ceStateMap;
 
-    void Init(std::string defectFile);
+    void Init(/*std::string defectFile*/);
 
     std::vector<std::map<llvm::Instruction*, bool> > instMaps;
     std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
@@ -226,7 +226,7 @@ namespace klee {
 	};
 	
   public:
-    CEKSearcher(Executor &_executor, std::string cefile);
+    CEKSearcher(Executor &_executor/*, std::string cefile*/);
     ~CEKSearcher();
     ExecutionState &selectState();
     void update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
