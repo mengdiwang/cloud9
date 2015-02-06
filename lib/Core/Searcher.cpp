@@ -61,6 +61,15 @@ using namespace llvm;
 namespace {
   cl::opt<bool>
   DebugLogMerge("debug-log-merge");
+
+  cl::opt<std::string>
+  cek_start_func("cek-start-func");
+
+  cl::opt<std::string>
+  cek_strategy("cek-strategy");
+
+  cl::opt<int>
+  cek_line("cek-lino");
 }
 
 namespace klee {
