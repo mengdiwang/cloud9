@@ -333,7 +333,7 @@ void CEKSearcher::Init(/*std::string defectFile*/)
 	if(rootBB == NULL)
 	{
 		std::cerr << "No main found\n";
-		continue;
+		return;
 	}
 
     IdomMap idomMap;//IDOM map
@@ -350,7 +350,7 @@ void CEKSearcher::Init(/*std::string defectFile*/)
     if(bb == NULL)
 	{
 		std::cerr << "No target function found\n";
-        continue;
+        return;
 	}
 
     std::cerr << "inter-Blocks Dijkstra\n";
