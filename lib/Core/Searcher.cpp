@@ -153,12 +153,19 @@ BasicBlock* GetMainBB(Module *M)
 std::string extractfilename(std::string path)
 {
 	std::string filename;
+	std::string fname;
 	size_t pos = path.find_last_of("/");
 	if(pos != std::string::npos)
 		filename.assign(path.begin() + pos + 1, path.end());
 	else
 		filename = path;
-	return filename;
+
+	pos = filename.find_last_of(".");
+	if(pos != std::string::npos)
+		fname.assign(filename.c_str(), pos);
+	else 
+		fname = filename;
+	return fname;
 }
 
 //find the path on the built graph
@@ -367,11 +374,13 @@ void CEKSearcher::Init(std::string defectFile)
 
         	BasicBlock *startBB = NULL;
         	TTask task = *lit;
+			std::cerr << "-----!!----\n";
             std::cerr << "Looking for '" << file << "'(" << task.lineno << ") from func:"
             		<< task.funcname << " with strategy: " << task.strategy << "\n";
 
+			std::cerr << "--------------\n";
             bb = FindTarget(file, task, &startBB);
-            
+            std::cerr << "--------------\n";
             if(bb == NULL)
 			{
 				std::cerr << "No target function found\n";
@@ -815,18 +824,19 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
     klee::KModule *km = executor.kmodule;
     BasicBlock *bb = NULL;
 	int offset = 1000;
-
+	std::cerr << "Find Target\n";
     for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
     {    
 		//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
     	//for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
 
-    	std::cerr << "fit name "<< fit->getName().str() << "\n";
+		//find the root basic block, if this returns null, will use main block
+    	std::cerr << "task.funcname: " << task.funcname << "fit name "<< fit->getName().str() << "\n";
     	if(fit->getName().str()==task.funcname)//TODO change to user defined string
     	{
     		if(*pstartBB!=NULL)
     		{
-    			continue;
+    			//continue;
     		}
     		else
     		{
@@ -835,18 +845,22 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
     		}
     	}
 
+
+
     	Function *F = &*fit;
     	for(Function::iterator bit = F->begin(); bit!=F->end(); ++bit)
     	{
     		BasicBlock *BB = (BasicBlock *)&*bit;
-			std::cerr << BB << " ";
+			//std::cerr << BB << "\n";
 			Instruction *begin_ins = BB->getFirstNonPHIOrDbg();
     		Instruction *end_ins = dyn_cast<Instruction>(BB->getTerminator());
 
     		std::string filename = km->infos->getInfo(begin_ins).file;
     		std::string instfname = extractfilename(filename);
     		std::string stdfname = extractfilename(file);
-    		if(instfname != stdfname)
+    		std::cerr << "filename:" << filename << " instfname:" << instfname
+					<< " stdfname:" << stdfname << "\n";
+			if(instfname != stdfname)
     			break;
 
     		int begin_line = executor.kmodule->infos->getInfo(begin_ins).line;
