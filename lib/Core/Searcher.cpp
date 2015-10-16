@@ -316,7 +316,7 @@ void CEKSearcher::Init(/*std::string defectFile*/)
 	BasicBlock *rootBB = NULL;
 	for(llvm::Module::iterator fit=M->begin(); fit!=M->end(); ++fit)
 	{
-		if(fit->getName().str()=="main")//TODO change to user defined string
+		if(fit->getName().str()=="main")
 		{
 			if(rootBB!=NULL)
 			{
@@ -385,29 +385,25 @@ void CEKSearcher::Init(/*std::string defectFile*/)
 
 	bb = NULL;
 
-	//for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
-    for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
+	for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
 	{
-		//for(std::vector<TChoiceItem>::iterator tcit = tit->begin(); tcit!=tit->end(); ++tcit)
-		{
-			ceStateMap.insert(std::make_pair(&*tcit, false));
-			std::cerr << tcit->Inst << " at line:" << tcit->brinfo->line << " asline:" << tcit->brinfo->assemblyLine
+		ceStateMap.insert(std::make_pair(&*tcit, false));
+		std::cerr << tcit->Inst << " at line:" << tcit->brinfo->line << " asline:" << tcit->brinfo->assemblyLine
 					<< " with choice:" << tcit->brChoice << " to asline at "
 					<< executor.kmodule->infos->getInfo(tcit->chosenInst).assemblyLine
 					<< " to inst at line:"
 					<< executor.kmodule->infos->getInfo(tcit->chosenInst).line <<  "\n";
-		}
 	}
 	
     std::cerr <<"Preparation done\n";
 }
 
-CEKSearcher::CEKSearcher(Executor &_executor/*, std::string defectFile*/)
+CEKSearcher::CEKSearcher(Executor &_executor)
 		:executor(_executor),
 		 qstates(new DiscretePDF<ExecutionState*>()),
 		 miss_ctr(0)
 {
-	Init(/*defectFile*/);
+	Init();
 }
 
 CEKSearcher::~CEKSearcher()
@@ -443,11 +439,9 @@ ExecutionState &CEKSearcher::selectState() {
 		passedSet.insert(n);
 		if(!n->left)
 		{
-			//std::cerr << "Only right ";
 			n = n->right;
 			if(cecanuse && n->data && (tcit->chosenInst == n->data->pc()->inst) && (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
-				//std::cerr << "in ce";
 				if(cecanuse)
 				{
 					TChoiceItem *ci = &*tcit;
@@ -455,30 +449,25 @@ ExecutionState &CEKSearcher::selectState() {
 				}
 				cereach ++;
 			}
-			//std::cerr << "\n";
 		}
 		else if(!n->right)
 		{
-			//std::cerr << "Only left ";
 			n = n->left;
 			if(cecanuse && n->data && (tcit->chosenInst == n->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
-				//std::cerr << "in ce";
 				TChoiceItem *ci = &*tcit;
 				ceStateMap[ci] = true;
 				cereach ++;
 			}
-			//std::cerr << "\n";
+		
 		}
 		else
 		{
-			//std::cerr << "Bichild:";
 			if(cecanuse && n->left->data && (tcit->chosenInst == n->left->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::FALSE))
 			{
 				//got and will exit the loop
-				//std::cerr << "left in ce";
 				forbitSet.insert(n->right);
 				n = n->left;
 				TChoiceItem *ci = &*tcit;
@@ -489,7 +478,6 @@ ExecutionState &CEKSearcher::selectState() {
 			else if(cecanuse && n->right->data && (tcit->chosenInst == n->right->data->pc()->inst)
 					&& (tcit->brChoice == (int)CEKSearcher::TRUE))
 			{
-				//std::cerr << "right in ce";
 				forbitSet.insert(n->left);
 				n = n->right;
 				TChoiceItem *ci = &*tcit;
@@ -502,16 +490,13 @@ ExecutionState &CEKSearcher::selectState() {
 				if(forbitSet.count(n->left)>0)
 				{
 					n = n->right;
-					//std::cerr << "right non neg";
 				}
 				else if(forbitSet.count(n->right)>0)
 				{
 					n = n->left;
-					//std::cerr << "left non neg";
 				}
 				else
 				{
-					//std::cerr << " random";
 					if(bits == 0)
 					{
 						flips = theRNG.getInt32();
@@ -521,8 +506,7 @@ ExecutionState &CEKSearcher::selectState() {
 					n = (flips & (1<<bits)) ? n->left : n->right;
 				}
 			}
-			//std::cerr << "\n";
-			//std::cerr << std::flush;
+			
 		}
 	}
 
@@ -533,7 +517,6 @@ ExecutionState &CEKSearcher::selectState() {
 		std::cerr << "Passed " << passedSet.size() << " Node in all\n";
 	}
 	return *n->data;
-  //return *states.back();
 }
 #endif
 
@@ -560,18 +543,7 @@ void CEKSearcher::update(ExecutionState *current,
 	{
 		bool found = false;
 		ExecutionState *es = *it;
-			//TODO: TEST HERE!
-		/*
-		for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
-		{
-			if(tcit->chosenInst == es->pc()->inst)
-			{
-				std::cerr << es-pc()->inst << " reach CE choice!\n";
-				reach = true;
-				break;
-			}
-		}
-		*/
+		
 		for(std::vector<Instruction *>::const_iterator cit = purnlist.begin(),
 			cie = purnlist.end(); cit != cie; ++cit)
 		{
@@ -604,8 +576,6 @@ void CEKSearcher::update(ExecutionState *current,
 			executor.setHaltExecution(true);
 		}
 	}
-	
-	//std::cerr << "\n";
 }
 #else
 void CEKSearcher::update(ExecutionState *current,
@@ -613,11 +583,9 @@ void CEKSearcher::update(ExecutionState *current,
                          const std::set<ExecutionState*> &removedStates) {
 
 	//wmd
-	//?? to comment
 	//TODO:The goal should be execute with terminate state
 	if(reachgoal == 1)
 	{
-		//executor.setHaltExecution(true);
 		return;
 	}
 	//?
@@ -628,6 +596,7 @@ void CEKSearcher::update(ExecutionState *current,
 	//for(std::vector<TCList>::iterator tit=cepaths.begin(); tit!=cepaths.end(); ++tit)
 	for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
 	{
+		/*
 		if(current && tcit->chosenInst == current->pc()->inst)
 		{
 			//std::cerr << "[Current state reach es]\n";
@@ -635,10 +604,9 @@ void CEKSearcher::update(ExecutionState *current,
 		if(current && tcit->Inst == current->pc()->inst)
 		{
 			//std::cerr << "[Critical Branch reach]\n";
-		}
+		}*/
 	}
-	//std::cerr<<"\n";
-
+	
 	for(std::set<ExecutionState*>::const_iterator it = addedStates.begin(),
 		  ie = addedStates.end(); it!=ie; ++it)
 	{
@@ -684,12 +652,9 @@ void CEKSearcher::update(ExecutionState *current,
 
 		LOG(INFO) << "REACH TARGET";
 		std::cerr << "====================\nReach the Goal Instruction!!!!!!!\n====================\n";
-		//?? to comment		
-		//states.clear();
 		reachgoal ++;
-		//executor.setHaltExecution(true);
 		return;
-		//?
+		
 	}
 }
 #endif
@@ -760,7 +725,6 @@ void CEKSearcher::findSinglePath(std::vector<Vertex> *path,
 			idom[get(indexmap, *uItr)] = (std::numeric_limits<int>::max)();
 		}
     }
-
 	//copy(idom.begin(), idom.end(), std::ostream_iterator<int>(std::cerr, "\n"));
 }
 
@@ -777,7 +741,6 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
     	//for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
 
 		//find the root basic block, if this returns null, will use main block
-    	//std::cerr << "task.funcname: " << task.funcname << "fit name "<< fit->getName().str() << "\n";
     	if(fit->getName().str()==task.funcname)//TODO change to user defined string
     	{
     		if(*pstartBB!=NULL)
@@ -805,7 +768,7 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
 			if(instfname != stdfname)
     			break;
 
-    		std::cerr /*<< "filename:" << filename*/ << " instfname:" << instfname
+    		//std::cerr /*<< "filename:" << filename*/ << " instfname:" << instfname
 					<< " stdfname:" << stdfname << "\n";
 
     		int begin_line = executor.kmodule->infos->getInfo(begin_ins).line;
@@ -820,52 +783,7 @@ BasicBlock *CEKSearcher::FindTarget(std::string file, TTask task, BasicBlock **p
 				std::cerr << "Reach:'"<<filename << "'("<< begin_line << "-" << end_line << ")\n";
 			}
     	}
-/*
-        for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
-        {
-			std::string filename = km->infos->getInfo(&*it).file;
-			std::string instfname = extractfilename(filename);
-			std::string stdfname = extractfilename(file);   
-			
-			if(instfname != stdfname)
-				break;
-
-			//std::cerr << &*it->getParent() << " "<<(&*it) << " "<<km->infos->getInfo(&*it).line << "\n";
-		}
-*/
-		/*	unsigned linenolow = 0;        
-			unsigned lineno= km->infos->getInfo(&*it).line;
-			std::string filename = km->infos->getInfo(&*it).file;
-
-			std::string instfname = extractfilename(filename);
-			std::string stdfname = extractfilename(file);	
-
-			if(instfname != stdfname)
-				break;
-        	std::cerr << "reach:'"<<filename << "'("<< lineno<< ")\n";
-			//std::cerr << "reach:'" << filename << "(" << instfname << ")'(" << linenolow << "," << lineno << ")\n";
-        	if(task.lineno > linenolow && task.lineno <= lineno && instfname == stdfname)//change to range search
-			//if(lineno == line && filename == file)
-        	{
-        		int offr = (int)task.lineno-(int)lineno;
-				int off = (offr>=0)? offr: -offr;
-				if(off < offset)
-				{  		
-					//if(line != lineno)
-        			//	std::cerr << "Approximately ";
-					//std::cerr << "find the target\n";
-        			bb = &*it->getParent();
-        			GoalInst = &*it;
-					offset = off;				
-				}
-        		
-				//return bb;
-        	}
-        	linenolow = lineno;
-        }
-        */
     }
-	//std::cerr << "offset:" << offset << "\n";
 
     return bb;
 }
@@ -878,8 +796,7 @@ void CEKSearcher::addBBEdges(BasicBlock *BB)
     
     for(succ_iterator si = succ_begin(BB); si!=succ_end(BB); ++si)
     {
-				//std::cerr << "add block\n";
-        boost::tie(e, inserted) = add_edge(bbMap[BB], bbMap[*si], bbG);
+		boost::tie(e, inserted) = add_edge(bbMap[BB], bbMap[*si], bbG);
         if(inserted)
             addBBEdges(*si);
         bbWeightmap[e] = 1;
@@ -1024,13 +941,6 @@ void CEKSearcher::GetCEList(BasicBlock *targetB, BasicBlock *rootBB, TCList &ceL
 		for(pred_iterator ppi=pred_begin(frontB); ppi!=pred_end(frontB); ++ppi)
 			ccount ++;
 		
-		/*
-		if(ccount>=2)
-		{
-			//idom
-		}
-		else
-		*/
 		{
 		for(pred_iterator pi=pred_begin(frontB); pi!=pred_end(frontB); ++pi)
 		{
@@ -1234,8 +1144,7 @@ BasicBlock *CEKSearcher::findCEofSingleBB(BasicBlock *targetB, TCList &ceList)
 				bbset.insert(predB);
 				bbque.push(predB);
 				count ++;
-			
-
+		
 				//wmd add 2014 10 17 from GetCEList
 				//test whether or not predB is conditional
 				BranchInst *brInst = dyn_cast<BranchInst>(predB->getTerminator());
@@ -1394,7 +1303,6 @@ double CEKSearcher::resetWeight(ExecutionState *es)
 
 double CEKSearcher::getWeight(ExecutionState *es)
 {
-	//std::cerr << "\n";
 	for(std::vector<TChoiceItem>::iterator tcit=cepaths.begin(); tcit!=cepaths.end(); ++tcit)
 	{
 		if(es && tcit->chosenInst == es->pc()->inst)
@@ -1410,8 +1318,6 @@ double CEKSearcher::getWeight(ExecutionState *es)
 	//TODO add substract weight here
 	if(es && es->pc()->inst == GoalInst)
 		es->weight += 10;
-
-	//std::cerr << es->pc()->inst << " weight:" << es->weight << "\n";
 
 	return es->weight;
 }
@@ -1615,10 +1521,10 @@ void EDSearcher::BuildGraph(std::string file, Executor &executor, std::map<Basic
         for(inst_iterator it = inst_begin(fit), ie = inst_end(fit); it!=ie; ++it)
         {
             llvm::Instruction *i = &*it;
-						//std::cerr << "reach inst:" <<executor.kmodule->infos->getInfo(i).line << "in file " << extractfilename(executor.kmodule->infos->getInfo(i).file) << "\n";
+			//std::cerr << "reach inst:" <<executor.kmodule->infos->getInfo(i).line << "in file " << extractfilename(executor.kmodule->infos->getInfo(i).file) << "\n";
             if(i->getOpcode() == Instruction::Call || i->getOpcode() == Instruction::Invoke)
             {
-								//std::cerr << "get caller instruction\n";
+				//std::cerr << "get caller instruction\n";
 
                 CallSite cs(i);
                 Function *f = cs.getCalledFunction();
@@ -1661,9 +1567,7 @@ BasicBlock* EDSearcher::FindTarget(Executor &executor, std::string file, unsigne
 
     for(llvm::Module::iterator fit = M->begin(); fit!=M->end(); ++fit)
     {
-    	//for(llvm::Function::iterator bit = fit->begin(); bit!=fit->end(); ++bit)
-    	//for(llvm::BasicBlock::iterator it = bit->begin(); it!=bit->end(); ++it)
-        for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
+    	for(inst_iterator it = inst_begin(fit), ie=inst_end(fit); it!=ie; ++it)
         {
         	unsigned lineno= km->infos->getInfo(&*it).line;
 			std::string filename = km->infos->getInfo(&*it).file;
@@ -1784,20 +1688,8 @@ void EDSearcher::Init(std::string defectFile)
 		std::cerr << "No entry in defectFile.txt\n";
 		return;
 	}
-	
 
     std::vector<Vertex> path;
-	
-	/*
-	for(llvm::Module::iterator fit->M->begin(); fit!=M->end(); ++fit)
-	{
-		int count = 0;
-		for(llvm::Function::iterator bit=fit->begin(); bit!=fit->end(); ++bit)
-		{
-			count ++;
-		}
-		std::cerr << count << " blocks in function " << fit->getName().str() << "\n";
-	}*/
 	
 	//refactor to on func
 	BasicBlock *rootBB = GetMainBB(M);
@@ -1852,90 +1744,7 @@ void CEKSearcher::PrintDotGraph()
     std::ofstream bbs_file("blocks.dot");
     boost::write_graphviz(bbs_file, bbG, my_bb_label_writer(this));
 }
-//~
-/*
-//----------CESearcher--------------//
-CESearcher::CESearcher(Executor &_executor, std::string defectFile):executor(_executor), miss_ctr(0)
-{
-    //build the path list
-
-	int count;
-	std::vector<TceList> &cepaths = executor.kmodule->cepaths;
-    std::cerr << "CESearcher:: critical path are follow:\n";
-    
-    if(cepaths.size() == 0)
-		std::cerr << "CESearcher:: Warning cepaths has no element\n";
-
-    for(std::vector<TceList>::iterator pit=cepaths.begin(); pit!=cepaths.end(); ++pit)
-    {
-		std::cerr << count << "\n";
-		count ++;
-        TceList path = *pit;
-        if(path.empty())
-            continue;
-        
-        for(TceList::iterator it=path.begin(); it!=path.end(); ++it)
-        {
-            llvm::TCeItem ce = *it;
-            BasicBlock *bb = ce.criStmtStr->getParent();
-
-            //std::cerr << "["  << " {" << bb->getParent() << "} [" << bb << "] - ";
-
-            std::cerr << "["  << " {" << bb->getParent() << "} [" << bb << "] - ";
-
-        }
-        std::cerr << "\n";
-    
-   
-        //build instmap
-        std::map<llvm::Instruction*, bool> instMap;
-    
-        llvm::TCeItem ceitem = path.back();
-        BasicBlock *BB = ceitem.criStmtStr->getParent();
-        for(BasicBlock::iterator bbit=BB->begin(); bbit!=BB->end(); ++bbit)
-        {
-            Instruction *I = bbit;
-            if(I->getOpcode() != Instruction::Br)
-                instMap[I] = false;
-        }
-        std::cerr << instMap.size() << "instruction in leaf BB\n";
-        instMaps.push_back(instMap);
-
-    }
-}
-
-ExecutionState &CESearcher::selectState()
-{
-    return *states.back();
-}
-
-void CESearcher::update(ExecutionState *current,
-						const std::set<ExecutionState*> &addedStates,
-						const std::set<ExecutionState*> &removedStates)
-{
-	states.insert(states.end(),
-				addedStates.begin(),
-				addedStates.end());
-	for (std::set<ExecutionState*>::const_iterator it = removedStates.begin(),
-		ie = removedStates.end(); it != ie; ++it) {
-		ExecutionState *es = *it;
-		bool ok = false;
-
-		for (std::vector<ExecutionState*>::iterator it = states.begin(),
-	           ie = states.end(); it != ie; ++it) {
-			if (es==*it) {
-				states.erase(it);
-				ok = true;
-				break;
-			}
-	    }
-
-		assert(ok && "invalid state removed");
-	}
-}
-
-//~
-*/
+//~end of CeKSearcher
 
 ExecutionState &DFSSearcher::selectState() {
   return *states.back();
