@@ -71,7 +71,6 @@ namespace klee {
     virtual void deactivate() {}
 
     // utility functions
-
     void addState(ExecutionState *es, ExecutionState *current = 0) {
       std::set<ExecutionState*> tmp;
       tmp.insert(es);
@@ -87,38 +86,7 @@ namespace klee {
     int reachgoal;
     int GetReachGoal(){return reachgoal;}
   };
-    
-  
-    //wmd
-  /*
-  class CESearcher : public Searcher{
-  public:
-//		typedef std::vector<llvm::BasicBlock*> pathType;
-    typedef std::vector<llvm::TCeItem> TceList;
-	private:
-    std::vector<ExecutionState*> states;
-    std::vector<TceList> cepaths;
-    std::vector<std::map<llvm::Instruction*, bool> > instMaps;
-    Executor &executor;
-    int miss_ctr;
-        
-	//bool allDone(void);
-	//bool done(int index);
-	//int left(int index);
-	//void KillAllStates(void);
-    
-  public:
-    CESearcher(Executor &_executor, std::string cefile);
-    ExecutionState &selectState();
-    void update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
-        const std::set<ExecutionState*> &removedStates);
-    bool empty() {return states.empty();}
-    void printName(std::ostream &os)
-    {
-      os << "CESearcher\n";
-    }
-  };
-  */
+
 
 	struct TTask
 	{
@@ -129,33 +97,27 @@ namespace klee {
 			:lineno(_lineno),funcname(_funcname),strategy(_strategy){}
 	};
 
-    typedef std::map<std::string, std::vector<TTask> > defectList;
-    typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property,
-	boost::property<boost::edge_weight_t, int> > Graph;
-    typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
-  	typedef boost::graph_traits<Graph>::edge_descriptor Edge;
+  typedef std::map<std::string, std::vector<TTask> > defectList;
+  typedef boost::adjacency_list<boost::setS, boost::vecS, boost::bidirectionalS, boost::no_property, 
+            boost::property<boost::edge_weight_t, int> > Graph;
+  typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
+  typedef boost::graph_traits<Graph>::edge_descriptor Edge;
 	typedef boost::color_traits<boost::default_color_type> Color;
 	typedef std::vector<boost::default_color_type> ColorVec;
-
-	//typedef property_map<Graph, vertex_index_t>::type IndexMap;
-	//typedef iterator_property_map<std::vector<Vertex>::iterator, property_map<Graph, vertex_index_t>::type> PredMap;
-	typedef std::map<BasicBlock*, BasicBlock*> IdomMap;
-
+  typedef std::map<BasicBlock*, BasicBlock*> IdomMap;
 
 
 	struct TChoiceItem
-    {
+  {
     	TChoiceItem(llvm::Instruction *_Inst, llvm::Instruction* _chosenInst, int _brChoice, const InstructionInfo *_brinfo)
     	:Inst(_Inst), chosenInst(_chosenInst), brChoice(_brChoice),brinfo(_brinfo)
     	{}
     	llvm::Instruction *Inst;
     	llvm::Instruction *chosenInst;
-		int brChoice;
-    	//unsigned line;
+		  
+      int brChoice;
     	const InstructionInfo *brinfo;
-    };
-	
-	
+  };
 	
   class CEKSearcher : public Searcher{
   public:
@@ -166,23 +128,22 @@ namespace klee {
     //bool reachgoal;
     llvm::Instruction *GoalInst;
     std::vector<ExecutionState*> states;
-	ExecutionState *goales;	
+    ExecutionState *goales;	
 
     bool updateWeights;
-	DiscretePDF<ExecutionState*> *qstates;
-	double getWeight(ExecutionState *es);
-	double resetWeight(ExecutionState *es);
-	std::vector<Instruction *>purnlist;//TODO run SCC to remove non-target edges
+    DiscretePDF<ExecutionState*> *qstates;
+    double getWeight(ExecutionState *es);
+    double resetWeight(ExecutionState *es);
+    std::vector<Instruction *>purnlist;//TODO run SCC to remove non-target edges
 	
     std::set<PTreeNode*> forbitSet;
-	std::set<PTreeNode*> passedSet;
-    //std::vector<TCList> cepaths;
+    std::set<PTreeNode*> passedSet;
     TCList cepaths;
     Executor &executor;
     int miss_ctr;
     std::map<TChoiceItem*, bool> ceStateMap;
 
-    void Init(/*std::string defectFile*/);
+    void Init();
 
     std::vector<std::map<llvm::Instruction*, bool> > instMaps;
     std::map<std::pair<Function*, Function*>, std::vector<BasicBlock*> > CallBlockMap; // caller bb map<pair<caller, callee> ,BasicBlock>
@@ -192,11 +153,10 @@ namespace klee {
     Graph bbG;
     std::map<BasicBlock*, Vertex> bbMap;
     Graph funcG;
-	std::map<Function*, Vertex> funcMap;
+    std::map<Function*, Vertex> funcMap;
 
     BasicBlock *FindTarget(std::string file, TTask line, BasicBlock **pstartBB);
     void BuildGraph(std::string file);
-    //void getDefectList(std::string docname, defectList *res);
     void GetBBPathList(std::vector<BasicBlock *> &blist, BasicBlock *tBB, TCList &ceList, IdomMap domTreePredMap);
     BasicBlock *findCEofSingleBB(BasicBlock *targetB, TCList &ceList);
     BasicBlock *findCEofSingleBBWithIdom(BasicBlock *targetB, TCList &ceList, IdomMap domTreePredMap);
@@ -208,22 +168,20 @@ namespace klee {
     void findSinglePath(std::vector<Vertex> *path, Vertex root, Vertex target,
     		Graph &graph, std::string strategy, IdomMap &domTreePredMap);
 
-	std::string getBBName(Vertex v);
-	void PrintDotGraph();
-	bool InWhiteList(llvm::Function *fit, std::string stdname);
+    std::string getBBName(Vertex v);
+    void PrintDotGraph();
+    bool InWhiteList(llvm::Function *fit, std::string stdname);
 
-    //bool CompareByLine(const TChoiceItem &a, const TChoiceItem &b);
-
-	struct my_bb_label_writer
-	{
-		CEKSearcher *CEP;
-		my_bb_label_writer(CEKSearcher *_CEP):CEP(_CEP){}
-		template<class VertexOrEdge>
-		void operator()(std::ostream &out, const VertexOrEdge &v) const
-		{
-			out << "[label=\"" << CEP->getBBName(v) << "\"]";
-		}
-	};
+    struct my_bb_label_writer
+    {
+      CEKSearcher *CEP;
+      my_bb_label_writer(CEKSearcher *_CEP):CEP(_CEP){}
+      template<class VertexOrEdge>
+      void operator()(std::ostream &out, const VertexOrEdge &v) const
+      {
+      	out << "[label=\"" << CEP->getBBName(v) << "\"]";
+      }
+    };
 	
   public:
     CEKSearcher(Executor &_executor/*, std::string cefile*/);
@@ -232,13 +190,14 @@ namespace klee {
     void update(ExecutionState *current,const std::set<ExecutionState*> &addedStates,
                 const std::set<ExecutionState*> &removedStates);
     bool empty();
-	void printName(std::ostream &os)
+    void printName(std::ostream &os)
     {
       os << "CEKSearcher\n";
     }
   };
 
   class EDSearcher:public Searcher{
+
   private:
 	  std::vector<ExecutionState*> states;
 	  Executor &executor;
@@ -253,6 +212,7 @@ namespace klee {
 	  std::map<std::string, unsigned> strmap;
 	  llvm::Instruction *GoalInst;
 	  std::string InitStr;
+
   private:
 	  bool InWhiteList(llvm::Function* fit, std::string stdname);
 	  void Init(std::string defectFile);
